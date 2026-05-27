@@ -1,0 +1,191 @@
+// LiftLedger — PostgreSQL via Prisma
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MuscleGroup {
+  CHEST
+  BACK
+  UPPER_TRAPS
+  QUADS
+  HAMSTRINGS
+  GLUTES
+  CALVES
+  SHOULDERS
+  BICEPS
+  TRICEPS
+  FOREARMS
+  CORE
+  OTHER
+}
+
+enum ExerciseType {
+  COMPOUND
+  ISOLATION
+}
+
+/// Unit the user entered for a set (or prefers in the UI). Analytics normalize in app code.
+enum WeightUnit {
+  KG
+  LB
+}
+
+/// Hevy `set_type`. Weekly set-volume counts only NORMAL, FAILURE, and DROPSET — never WARMUP.
+enum SetKind {
+  WARMUP
+  NORMAL
+  FAILURE
+  DROPSET
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  /// bcrypt hash of the password — never return this from the API.
+  passwordHash String
+  name      String?
+  createdAt DateTime @default(now())
+
+  /// Default for new logs / dashboards; stored sets keep their own unit until you convert in UI.
+  preferredWeightUnit WeightUnit @default(KG)
+
+  workouts         Workout[]
+  bodyMeasurements BodyMeasurementEntry[]
+  csvImports       CsvImport[]
+}
+
+/// Lifecycle of a Hevy (or other) CSV file upload for auditing and re-imports.
+enum CsvImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model CsvImport {
+  id         String           @id @default(cuid())
+  userId     String
+  /// Original filename from the client (for display / audit).
+  fileName   String
+  uploadedAt DateTime         @default(now())
+  status     CsvImportStatus  @default(PENDING)
+  /// Structured or free-form errors (parse failures, row skips, etc.).
+  errorDetails Json?
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workouts Workout[]
+
+  @@index([userId, uploadedAt])
+}
+
+/// Canonical exercise library row for analytics (muscle volume, compound vs isolation, etc.).
+model Exercise {
+  id                 String        @id @default(cuid())
+  name               String        @unique
+  primaryMuscleGroup MuscleGroup
+  exerciseType ExerciseType
+  description        String?
+  createdAt          DateTime      @default(now())
+
+  aliases     ExerciseAlias[]
+  workoutSets WorkoutSet[]
+
+  @@index([primaryMuscleGroup])
+  @@index([exerciseType])
+}
+
+model ExerciseAlias {
+  id         String @id @default(cuid())
+  exerciseId String
+  /// Normalized in app code when inserting (e.g. lowercased, trimmed).
+  alias      String @unique
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([exerciseId])
+}
+
+model Workout {
+  id        String   @id @default(cuid())
+  userId    String
+  /// Workout date/time from import or UI — must be set explicitly (no DB default).
+  startedAt DateTime
+  notes     String?
+
+  /// Set when this session was created from a CSV row batch; null for manual/API-only creates.
+  csvImportId String?
+  csvImport   CsvImport? @relation(fields: [csvImportId], references: [id], onDelete: SetNull)
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sets WorkoutSet[]
+
+  @@index([userId, startedAt])
+  @@index([csvImportId])
+}
+
+/// One logged set. Weight is amount + unit so history stays accurate when the user switches preferred units.
+model WorkoutSet {
+  id         String @id @default(cuid())
+  workoutId  String
+  exerciseId String
+  /// Order within the workout (0, 1, 2, …).
+  orderIndex Int
+
+  /// From Hevy `set_type`; volume queries exclude WARMUP.
+  setKind SetKind @default(NORMAL)
+
+  /// Rep-based sets; null when the set is logged by duration (e.g. dead hang).
+  reps Int?
+  /// Hevy `duration_s` — holds, planks, hangs, etc.
+  durationSeconds Int?
+  /// Load for the set; null with null unit = bodyweight / no external load.
+  weightAmount Decimal?   @db.Decimal(8, 2)
+  weightUnit   WeightUnit?
+
+  rir Float?
+  rpe Float?
+
+  workout  Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+
+  @@unique([workoutId, orderIndex])
+  @@index([workoutId])
+  @@index([exerciseId])
+}
+
+enum MeasurementSite {
+  BODY_WEIGHT
+  NECK
+  CHEST
+  WAIST
+  HIPS
+  LEFT_ARM
+  RIGHT_ARM
+  LEFT_FOREARM
+  RIGHT_FOREARM
+  LEFT_THIGH
+  RIGHT_THIGH
+  LEFT_CALF
+  RIGHT_CALF
+}
+
+model BodyMeasurementEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  measuredAt DateTime @default(now())
+  site       MeasurementSite
+  /// kg when site is BODY_WEIGHT; cm for circumferences (app + UI document the rule).
+  value      Decimal  @db.Decimal(8, 2)
+  notes      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, measuredAt])
+  @@index([userId, site, measuredAt])
+}

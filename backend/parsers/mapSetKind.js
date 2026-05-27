@@ -1,0 +1,21 @@
+/** Maps Hevy `set_type` string to Prisma SetKind enum values. */
+export function mapSetKind(raw) {
+  if (raw == null || String(raw).trim() === "") return null;
+
+  const s = String(raw).trim().toLowerCase();
+
+  switch (s) {
+    case "warmup":
+      return "WARMUP";
+    case "normal":
+      return "NORMAL";
+    case "failure":
+      return "FAILURE";
+    case "dropset":
+    case "drop_set":
+    case "drop set":
+      return "DROPSET";
+    default:
+      return null;
+  }
+}

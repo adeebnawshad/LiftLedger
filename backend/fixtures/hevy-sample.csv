@@ -1,0 +1,8 @@
+title,start_time,end_time,description,exercise_title,superset_id,exercise_notes,set_index,set_type,weight_lbs,reps,distance_km,duration_s,rpe
+Pull 1,"Mar 29, 2026, 10:04 AM","Mar 29, 2026, 11:30 AM",,Rack Pull,,,0,normal,425,15,,,
+Pull 1,"Mar 29, 2026, 10:04 AM","Mar 29, 2026, 11:30 AM",,Shrug (Barbell),,Power shrug,0,normal,285,13,,,
+Pull 1,"Mar 29, 2026, 10:04 AM","Mar 29, 2026, 11:30 AM",,Shrug (Barbell),,Power shrug,1,normal,285,12,,,
+Pull 1,"Mar 29, 2026, 10:04 AM","Mar 29, 2026, 11:30 AM",,"Triceps Extension (Cable)",,,0,normal,125,12,,,
+Push 1,"Mar 28, 2026, 6:53 AM","Mar 28, 2026, 8:00 AM",,"Bench Press (Smith Machine)",,,0,normal,230,8,,,
+Push 1,"Mar 28, 2026, 6:53 AM","Mar 28, 2026, 8:00 AM",,"Bench Press (Smith Machine)",,,1,normal,220,8,,,
+Pull 1,"Mar 29, 2026, 10:04 AM","Mar 29, 2026, 11:30 AM",,"Dead Hang",,,0,normal,,,,45,
