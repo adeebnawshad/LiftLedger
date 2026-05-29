@@ -140,10 +140,12 @@ model WorkoutSet {
   /// From Hevy `set_type`; volume queries exclude WARMUP.
   setKind SetKind @default(NORMAL)
 
-  /// Rep-based sets; null when the set is logged by duration (e.g. dead hang).
+  /// Rep-based sets; null when logged by duration or distance instead.
   reps Int?
-  /// Hevy `duration_s` — holds, planks, hangs, etc.
+  /// Hevy duration_seconds / duration_s — holds, planks, hangs, etc.
   durationSeconds Int?
+  /// Hevy distance_km — walking lunges, carries, sleds, etc.
+  distanceKm Decimal? @db.Decimal(8, 3)
   /// Load for the set; null with null unit = bodyweight / no external load.
   weightAmount Decimal?   @db.Decimal(8, 2)
   weightUnit   WeightUnit?

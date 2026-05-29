@@ -8,6 +8,14 @@ import { parseHevyCsv } from "../parsers/parseHevyCsv.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url)); // __dirname is the directory name of the current module
 const fixturePath = path.join(__dirname, "../fixtures/hevy-sample.csv"); // path.join is used to join the directory name with the file name
 
+function formatSetMetric(row) {
+  const parts = [];
+  if (row.reps != null) parts.push(`x${row.reps}`);
+  if (row.durationSeconds != null) parts.push(`${row.durationSeconds}s`);
+  if (row.distanceKm != null) parts.push(`${row.distanceKm}km`);
+  return parts.length ? parts.join(" ") : "?";
+}
+
 const csv = fs.readFileSync(fixturePath, "utf8");
 const result = parseHevyCsv(csv);
 
@@ -16,7 +24,7 @@ console.log("Errors:", result.errors);
 console.log("Rows:");
 for (const row of result.rows) {
   console.log(
-    `  [${row.sourceRow}] ${row.workoutTitle} | ${row.exerciseTitle} | order=${row.orderIndex} setIdx=${row.setIndexInExercise} | ${row.setKind} ${row.weightLbs ?? "BW"}lb ${row.reps != null ? `x${row.reps}` : `${row.durationSeconds}s`}`,
+    `  [${row.sourceRow}] ${row.workoutTitle} | ${row.exerciseTitle} | order=${row.orderIndex} setIdx=${row.setIndexInExercise} | ${row.setKind} ${row.weightLbs ?? "BW"}lb ${formatSetMetric(row)}`,
   );
 }
 

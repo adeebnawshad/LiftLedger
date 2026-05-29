@@ -4,6 +4,7 @@ import morgan from "morgan";
 import cors from "cors";
 import dotenv from "dotenv";
 import { prisma } from "./prisma.js";
+import importRoutes from "./routes/importRoutes.js";
 
 dotenv.config();
 
@@ -18,6 +19,8 @@ app.use(morgan("dev")); // morgan is a logging middleware that logs HTTP request
 app.get("/health", (_req, res) => {
   res.send("OK");
 });
+
+app.use("/api/import", importRoutes);
 
 const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

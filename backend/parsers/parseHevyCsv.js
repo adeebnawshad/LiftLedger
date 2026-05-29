@@ -17,6 +17,7 @@ export const HEVY_COLUMNS = {
   reps: "reps",
   distanceKm: "distance_km",
   durationS: "duration_s",
+  durationSeconds: "duration_seconds",
   rpe: "rpe",
 };
 
@@ -36,8 +37,9 @@ const REQUIRED_HEADERS = [
  * @property {number} setIndexInExercise - Hevy set_index within the exercise
  * @property {number} orderIndex - 0..n-1 across the whole workout (assigned after parse)
  * @property {'WARMUP'|'NORMAL'|'FAILURE'|'DROPSET'} setKind
- * @property {number|null} reps - null for duration-only sets (e.g. dead hang)
- * @property {number|null} durationSeconds - Hevy duration_s
+ * @property {number|null} reps - null for duration- or distance-only sets
+ * @property {number|null} durationSeconds - Hevy duration_seconds or duration_s
+ * @property {number|null} distanceKm - Hevy distance_km (e.g. walking lunges)
  * @property {number|null} weightLbs
  * @property {number|null} rpe
  * @property {string|null} exerciseNotes
@@ -130,10 +132,11 @@ export function parseHevyCsv(csvText) {
 
     const exerciseTitle = getCell(record, HEVY_COLUMNS.exerciseTitle);
     const repsRaw = getCell(record, HEVY_COLUMNS.reps);
-    const durationRaw = getCell(record, HEVY_COLUMNS.durationS);
+    const durationRaw = getDurationRaw(record);
+    const distanceRaw = getCell(record, HEVY_COLUMNS.distanceKm);
 
     // Skip blank lines
-    if (!exerciseTitle && !repsRaw && !durationRaw) {
+    if (!exerciseTitle && !repsRaw && !durationRaw && !distanceRaw) {
       skippedRecords += 1;
       return;
     }
@@ -151,7 +154,7 @@ export function parseHevyCsv(csvText) {
     const workoutTitle = getCell(record, HEVY_COLUMNS.title) ?? "";
     const workoutKey = buildWorkoutKey(workoutTitle, startTimeRaw);
 
-    if (!exerciseTitle) {;
+    if (!exerciseTitle) {
       errors.push({ row: sourceRow, message: "Missing exercise_title" });
       return;
     }
@@ -187,15 +190,31 @@ export function parseHevyCsv(csvText) {
     if (durationRaw != null && durationSeconds === null) {
       errors.push({
         row: sourceRow,
-        message: `Invalid duration_s: "${durationRaw}"`,
+        message: `Invalid duration_seconds: "${durationRaw}"`,
       });
       return;
     }
 
-    if (reps === null && durationSeconds === null) {
+    const distanceKm = parseOptionalFloat(distanceRaw);
+    if (distanceRaw != null && distanceKm === null) {
       errors.push({
         row: sourceRow,
-        message: "Set must have reps or duration_s (e.g. dead hang)",
+        message: `Invalid distance_km: "${distanceRaw}"`,
+      });
+      return;
+    }
+    if (distanceKm !== null && distanceKm < 0) {
+      errors.push({
+        row: sourceRow,
+        message: `Invalid distance_km: "${distanceRaw}"`,
+      });
+      return;
+    }
+
+    if (reps === null && durationSeconds === null && distanceKm === null) {
+      errors.push({
+        row: sourceRow,
+        message: "Set must have reps, duration_seconds, or distance_km",
       });
       return;
     }
@@ -223,6 +242,7 @@ export function parseHevyCsv(csvText) {
       setKind,
       reps,
       durationSeconds,
+      distanceKm,
       weightLbs,
       rpe,
       exerciseNotes,
@@ -262,6 +282,14 @@ function assignWorkoutOrderIndexes(draftRows) {
     counters.set(row.workoutKey, next + 1); // store the new count for the workoutKey in the Map (Map is memory between rows, without it every row would have to start at 0)
     return { ...row, orderIndex: next };
   });
+}
+
+/** Hevy exports use duration_seconds; older samples use duration_s. */
+function getDurationRaw(record) {
+  return (
+    getCell(record, HEVY_COLUMNS.durationSeconds) ??
+    getCell(record, HEVY_COLUMNS.durationS)
+  );
 }
 
 // return the value of the cell in the record for the given column
