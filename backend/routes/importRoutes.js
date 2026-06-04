@@ -1,37 +1,49 @@
 import { Router } from "express";
 import multer from "multer";
-import { parseHevyCsv } from "../parsers/parseHevyCsv.js";
 import { uploadCsv } from "../middleware/uploadCsv.js";
+import { importHevyCsvToDb } from "../services/importHevyCsv.js";
 
 const router = Router();
 
 /**
  * POST /api/import
  * Body: multipart/form-data, field name "file" (Hevy CSV export).
- * Step 1: accept file + parse; DB insert comes in a later step.
+ * Parses CSV and persists Workout / WorkoutSet rows. Unknown exercises are skipped.
  */
-router.post("/", uploadCsv.single("file"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({
-      error: 'Missing file. Send multipart field "file" with your Hevy CSV.',
+router.post("/", uploadCsv.single("file"), async (req, res, next) => { // without the single("file") middleware, req.file would be undefined
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'Missing file. Send multipart field "file" with your Hevy CSV.',
+      });
+    }
+
+    const userId = process.env.DEFAULT_USER_ID;
+    if (!userId) {
+      return res.status(500).json({
+        error: "DEFAULT_USER_ID is not configured. Run npm run db:seed and set it in .env.",
+      });
+    }
+
+    const csvText = req.file.buffer.toString("utf8");
+    const result = await importHevyCsvToDb({
+      csvText,
+      fileName: req.file.originalname,
+      userId,
     });
+
+    if (!result.ok) {
+      return res.status(result.status ?? 500).json(result); // send the status code and the result
+    }
+
+    return res.status(200).json(result);
+  } catch (err) {
+    next(err); // hand off to the error handler at the bottom
   }
-
-  const csvText = req.file.buffer.toString("utf8");
-  const result = parseHevyCsv(csvText);
-
-  return res.status(200).json({
-    fileName: req.file.originalname,
-    byteSize: req.file.size,
-    stats: result.stats,
-    errors: result.errors,
-    // Omit full rows for now — large exports would bloat the response.
-    sampleRows: result.rows.slice(0, 3),
-  });
 });
 
 /** Multer errors (size, file type) */
-router.use((err, _req, res, next) => {
+router.use((err, _req, res, next) => { // router.use is used to add middleware to the router. Middleware is a function that runs between the request and the response. If you pass 4 arguments, Express will treat it as error middleware (only runs when next(err) is called). If you pass 3 arguments, Express will treat it as regular middleware (runs on every request). 
   if (err instanceof multer.MulterError) {
     const message =
       err.code === "LIMIT_FILE_SIZE"

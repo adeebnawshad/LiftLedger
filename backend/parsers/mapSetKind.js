@@ -12,8 +12,6 @@ export function mapSetKind(raw) {
     case "failure":
       return "FAILURE";
     case "dropset":
-    case "drop_set":
-    case "drop set":
       return "DROPSET";
     default:
       return null;
