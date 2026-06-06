@@ -5,6 +5,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { prisma } from "./prisma.js";
 import importRoutes from "./routes/importRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
 
 dotenv.config();
 
@@ -20,7 +21,8 @@ app.get("/health", (_req, res) => {
   res.send("OK");
 });
 
-app.use("/api/import", importRoutes);
+app.use("/api/import", importRoutes); // For any request whose URL starts with /api/import, run everything defined on importRoutes.
+app.use("/api/analytics", analyticsRoutes);
 
 const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
