@@ -1,24 +1,24 @@
-import { useEffect, useState } from 'react'
+import { WeeklyVolumeChart } from './components/WeeklyVolumeChart'
 
 function App() {
-  const [health, setHealth] = useState<string>('loading…')
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        setHealth(await res.text())
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Request failed')
-      })
-  }, [])
-
   return (
-    <div>
-      {error ? <p>API error: {error}</p> : <p>API health: {health}</p>}
-    </div>
+    <main>
+      <h1>LiftLedger</h1>
+      <p style={{ padding: '0 1.5rem' }}>
+        Weekly hard sets by muscle — compare periods side by side.
+      </p>
+
+      <WeeklyVolumeChart
+        title="Period A"
+        defaultStart="2026-02-01"
+        defaultEnd="2026-02-28"
+      />
+      <WeeklyVolumeChart
+        title="Period B"
+        defaultStart="2026-04-01"
+        defaultEnd="2026-04-30"
+      />
+    </main>
   )
 }
 

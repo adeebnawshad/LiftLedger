@@ -20,6 +20,9 @@ app.use(morgan("dev")); // morgan is a logging middleware that logs HTTP request
 app.get("/health", (_req, res) => {
   res.send("OK");
 });
+app.get("/api/health", (_req, res) => {
+  res.send("OK");
+});
 
 app.use("/api/import", importRoutes); // For any request whose URL starts with /api/import, run everything defined on importRoutes.
 app.use("/api/analytics", analyticsRoutes);
