@@ -12,7 +12,7 @@
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "db:seed:exercises": "node prisma/seedExercises.js",
+    "db:seed:exercises": "node prisma/seedExercisesFromCsv.js",
     "test:parse": "node backend/scripts/testParseHevy.js",
     "test:import": "node backend/scripts/testImportHevy.js",
     "debug:csv-row": "node backend/scripts/debugCsvRow.js"

@@ -146,3 +146,223 @@ function normalizeWeeklyRows(rows) {
     };
   });
 }
+
+/**
+ * Exercises the user logged with rep+weight sets in a date range (for strength chart picker).
+ *
+ * @param {{ userId: string, start: string, end: string }} params
+ */
+export async function getLoggedExercises({ userId, start, end }) {
+  const parsed = parseInclusiveDateRange(start, end);
+  if (!parsed.ok) {
+    return { ok: false, status: 400, error: parsed.error };
+  }
+
+  // Select distinct exercises with rep+weight sets in the date range. 
+  const rows = await prisma.$queryRaw`
+    SELECT DISTINCT
+      e."id" AS "exerciseId",
+      e."name" AS "exerciseName",
+      e."strengthTracking" AS "strengthTracking"
+    FROM "WorkoutSet" ws
+    JOIN "Workout" w ON ws."workoutId" = w."id"
+    JOIN "Exercise" e ON ws."exerciseId" = e."id"
+    WHERE w."userId" = ${userId}
+      AND ws."setKind" IN ('NORMAL', 'FAILURE', 'DROPSET')
+      AND ws.reps IS NOT NULL
+      AND ws.reps > 0
+      AND e."strengthTracking" != 'NONE'
+      AND (
+        e."strengthTracking" = 'MAX_REPS'
+        OR ws."weightAmount" IS NOT NULL
+      )
+      AND w."startedAt" >= ${parsed.start}
+      AND w."startedAt" < ${parsed.endExclusive}
+    ORDER BY e."name";
+  `;
+
+  return {
+    ok: true,
+    range: { type: "dates", start: parsed.startLabel, end: parsed.endLabel },
+    exercises: rows.map((r) => ({
+      exerciseId: r.exerciseId,
+      exerciseName: r.exerciseName,
+      strengthTracking: r.strengthTracking,
+    })),
+  };
+}
+
+/**
+ * Weekly max estimated 1RM (Epley) per exercise. Rep+weight sets only; excludes WARMUP.
+ * Weights normalized to kg. One series per distinct Exercise (Hevy title).
+ *
+ * @param {{ userId: string, exerciseId: string, weeks?: number, start?: string, end?: string }} params
+ */
+export async function getStrengthTrends({ userId, exerciseId, weeks, start, end }) {
+  if (!exerciseId || String(exerciseId).trim() === "") {
+    return { ok: false, status: 400, error: "exerciseId is required." };
+  }
+
+  const range = resolveRange({ weeks, start, end });
+  if (!range.ok) {
+    return range;
+  }
+
+  const exercise = await prisma.exercise.findUnique({
+    where: { id: exerciseId },
+    select: { id: true, name: true, strengthTracking: true },
+  });
+
+  if (!exercise) {
+    return { ok: false, status: 404, error: "Exercise not found." };
+  }
+
+  if (exercise.strengthTracking === "NONE") {
+    return {
+      ok: false,
+      status: 400,
+      error: "This exercise is not configured for strength tracking.",
+    };
+  }
+
+  const metric = exercise.strengthTracking === "MAX_REPS" ? "MAX_REPS" : "E1RM";
+
+  const rows =
+    range.type === "dates"
+      ? await queryStrengthTrendsByDateRange(
+          userId,
+          exerciseId,
+          range.start,
+          range.endExclusive,
+          metric,
+        )
+      : await queryStrengthTrendsByWeeks(userId, exerciseId, range.weeks, metric);
+
+  return {
+    ok: true,
+    exercise: {
+      id: exercise.id,
+      name: exercise.name,
+      strengthTracking: exercise.strengthTracking,
+    },
+    metric,
+    range:
+      range.type === "dates"
+        ? { type: "dates", start: range.startLabel, end: range.endLabel }
+        : { type: "weeks", weeks: range.weeks },
+    rows: normalizeStrengthRows(rows, metric),
+  };
+}
+
+async function queryStrengthTrendsByDateRange(
+  userId,
+  exerciseId,
+  start,
+  endExclusive,
+  metric,
+) {
+  if (metric === "MAX_REPS") {
+    // select the max reps for each week in the date range, grouped by week for a specific exercise for a specific user, order by week start
+    return prisma.$queryRaw`
+      SELECT
+        date_trunc('week', w."startedAt") AS "weekStart",
+        MAX(ws.reps)::int AS "value"
+      FROM "WorkoutSet" ws
+      JOIN "Workout" w ON ws."workoutId" = w."id"
+      WHERE w."userId" = ${userId}
+        AND ws."exerciseId" = ${exerciseId}
+        AND ws."setKind" IN ('NORMAL', 'FAILURE', 'DROPSET')
+        AND ws.reps IS NOT NULL
+        AND ws.reps > 0
+        AND w."startedAt" >= ${start}
+        AND w."startedAt" < ${endExclusive}
+      GROUP BY 1
+      ORDER BY 1;
+    `;
+  }
+
+  return prisma.$queryRaw`
+    SELECT
+      date_trunc('week', w."startedAt") AS "weekStart",
+      MAX(
+        (
+          CASE
+            WHEN ws."weightUnit" = 'LB' THEN ws."weightAmount"::float * 0.45359237
+            ELSE ws."weightAmount"::float
+          END
+        ) * (1 + ws.reps::float / 30.0)
+      )::float AS "value"
+    FROM "WorkoutSet" ws
+    JOIN "Workout" w ON ws."workoutId" = w."id"
+    WHERE w."userId" = ${userId}
+      AND ws."exerciseId" = ${exerciseId}
+      AND ws."setKind" IN ('NORMAL', 'FAILURE', 'DROPSET')
+      AND ws.reps IS NOT NULL
+      AND ws.reps > 0
+      AND ws."weightAmount" IS NOT NULL
+      AND w."startedAt" >= ${start}
+      AND w."startedAt" < ${endExclusive}
+    GROUP BY 1
+    ORDER BY 1;
+  `;
+}
+
+async function queryStrengthTrendsByWeeks(userId, exerciseId, weeks, metric) {
+  if (metric === "MAX_REPS") {
+    return prisma.$queryRaw`
+      SELECT
+        date_trunc('week', w."startedAt") AS "weekStart",
+        MAX(ws.reps)::int AS "value"
+      FROM "WorkoutSet" ws
+      JOIN "Workout" w ON ws."workoutId" = w."id"
+      WHERE w."userId" = ${userId}
+        AND ws."exerciseId" = ${exerciseId}
+        AND ws."setKind" IN ('NORMAL', 'FAILURE', 'DROPSET')
+        AND ws.reps IS NOT NULL
+        AND ws.reps > 0
+        AND w."startedAt" >= date_trunc('week', now()) - ${weeks} * INTERVAL '1 week'
+      GROUP BY 1
+      ORDER BY 1;
+    `;
+  }
+
+  return prisma.$queryRaw`
+    SELECT
+      date_trunc('week', w."startedAt") AS "weekStart",
+      MAX(
+        (
+          CASE
+            WHEN ws."weightUnit" = 'LB' THEN ws."weightAmount"::float * 0.45359237
+            ELSE ws."weightAmount"::float
+          END
+        ) * (1 + ws.reps::float / 30.0)
+      )::float AS "value"
+    FROM "WorkoutSet" ws
+    JOIN "Workout" w ON ws."workoutId" = w."id"
+    WHERE w."userId" = ${userId}
+      AND ws."exerciseId" = ${exerciseId}
+      AND ws."setKind" IN ('NORMAL', 'FAILURE', 'DROPSET')
+      AND ws.reps IS NOT NULL
+      AND ws.reps > 0
+      AND ws."weightAmount" IS NOT NULL
+      AND w."startedAt" >= date_trunc('week', now()) - ${weeks} * INTERVAL '1 week'
+    GROUP BY 1
+    ORDER BY 1;
+  `;
+}
+
+function normalizeStrengthRows(rows, metric) {
+  return rows.map((r) => {
+    const dt =
+      r.weekStart instanceof Date ? r.weekStart : new Date(r.weekStart);
+    const weekStart = Number.isNaN(dt.getTime())
+      ? String(r.weekStart)
+      : dt.toISOString().slice(0, 10);
+
+    const raw = Number(r.value) || 0;
+    const value =
+      metric === "E1RM" ? Math.round(raw * 10) / 10 : Math.trunc(raw);
+
+    return { weekStart, value };
+  });
+}

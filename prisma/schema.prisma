@@ -30,6 +30,13 @@ enum ExerciseType {
   ISOLATION
 }
 
+/// How strength charts track progress for this exercise.
+enum StrengthTracking {
+  NONE
+  E1RM
+  MAX_REPS
+}
+
 /// Unit the user entered for a set (or prefers in the UI). Analytics normalize in app code.
 enum WeightUnit {
   KG
@@ -89,7 +96,8 @@ model Exercise {
   id                 String        @id @default(cuid())
   name               String        @unique
   primaryMuscleGroup MuscleGroup
-  exerciseType ExerciseType
+  exerciseType       ExerciseType
+  strengthTracking   StrengthTracking @default(NONE)
   description        String?
   createdAt          DateTime      @default(now())
 

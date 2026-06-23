@@ -1,5 +1,5 @@
 import { prisma } from "../backend/prisma.js";
-import { seedExercises } from "./seedExercises.js";
+import { seedExercisesFromCsv } from "./seedExercisesFromCsv.js";
 
 const SEED_EMAIL = "local@liftledger.dev";
 const SEED_PASSWORD_HASH = "v1-no-auth-placeholder";
@@ -32,7 +32,7 @@ async function main() {
   console.log(`  DEFAULT_USER_ID=${user.id}`);
   console.log("");
 
-  await seedExercises();
+  await seedExercisesFromCsv();
 }
 
 main()

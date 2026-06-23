@@ -1,5 +1,6 @@
 import { prisma } from "../prisma.js";
 import { parseHevyCsv } from "../parsers/parseHevyCsv.js";
+import { EXCLUDED_CSV_TITLES } from "../../prisma/lib/csvExerciseConfig.js";
 import { normalizeAlias } from "../../prisma/lib/normalizeAlias.js";
 
 const MAX_SAMPLE_ROWS = 3;
@@ -72,7 +73,11 @@ export async function importHevyCsvToDb({ csvText, fileName, userId }) {
         const mappableSets = []; // array of sets that can be mapped to an exercise ID
 
         for (const row of group.sets) {
-          const exerciseId = resolveExerciseId(row.exerciseTitle, aliasToExerciseId); // find the exercise ID for the given exercise title
+          if (EXCLUDED_CSV_TITLES.has(row.exerciseTitle)) {
+            skippedSets += 1;
+            continue;
+          }
+          const exerciseId = resolveExerciseId(row.exerciseTitle, aliasToExerciseId);
           if (!exerciseId) {
             skippedSets += 1;
             recordUnknownExercise(unknownByTitle, row); // unknownByTitle is a Map of exercise titles to information about the unknown exercises. row is the current set row from the CSV.
@@ -193,7 +198,7 @@ function groupRowsByWorkout(rows) { // rows from the parsed CSV
 }
 
 // resolveExerciseId - find the exercise ID for a given exercise title
-function resolveExerciseId(exerciseTitle, aliasToExerciseId) {
+function resolveExerciseId(exerciseTitle, aliasToExerciseId) { 
   const key = normalizeAlias(exerciseTitle);
   if (!key) return null;
   return aliasToExerciseId.get(key) ?? null;
