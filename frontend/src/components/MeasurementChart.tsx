@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   CartesianGrid,
   Legend,
@@ -17,39 +17,41 @@ import {
   tooltipStyle,
 } from '../lib/chartTheme'
 import {
-  fetchWeeklyVolume,
-  muscleGroupsInRows,
-  pivotRowsByWeek,
-} from '../lib/weeklyVolume'
-import type { WeeklyVolumeRow } from '../types/analytics'
+  MEASUREMENT_SITES,
+  fetchMeasurementTrends,
+} from '../lib/measurements'
+import type { MeasurementRow, MeasurementSite } from '../types/measurements'
 
 type Props = {
   title: string
   defaultStart: string
   defaultEnd: string
+  defaultSite?: MeasurementSite
 }
 
-export function WeeklyVolumeChart({ title, defaultStart, defaultEnd }: Props) {
+export function MeasurementChart({
+  title,
+  defaultStart,
+  defaultEnd,
+  defaultSite = 'BODY_WEIGHT',
+}: Props) {
   const [start, setStart] = useState(defaultStart)
   const [end, setEnd] = useState(defaultEnd)
-  const [rows, setRows] = useState<WeeklyVolumeRow[]>([])
+  const [site, setSite] = useState<MeasurementSite>(defaultSite)
+  const [rows, setRows] = useState<MeasurementRow[]>([])
+  const [unit, setUnit] = useState('kg')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedMuscle, setSelectedMuscle] = useState('CHEST')
 
-  const muscles = useMemo(() => muscleGroupsInRows(rows), [rows])
-  const chartData = useMemo(() => pivotRowsByWeek(rows), [rows])
+  const slug = title.replace(/\s+/g, '-').toLowerCase()
 
   async function load() {
     setLoading(true)
     setError(null)
     try {
-      const result = await fetchWeeklyVolume({ start, end })
+      const result = await fetchMeasurementTrends({ site, start, end })
       setRows(result.rows)
-      const groups = muscleGroupsInRows(result.rows)
-      if (groups.length && !groups.includes(selectedMuscle)) {
-        setSelectedMuscle(groups[0])
-      }
+      setUnit(result.unit)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
       setRows([])
@@ -58,16 +60,23 @@ export function WeeklyVolumeChart({ title, defaultStart, defaultEnd }: Props) {
     }
   }
 
+  useEffect(() => {
+    load()
+  }, [])
+
+  const siteLabel =
+    MEASUREMENT_SITES.find((s) => s.value === site)?.label ?? site
+
   return (
     <section className="card">
       <h2 className="card__title">{title}</h2>
-      <p className="card__subtitle">Weekly hard sets by muscle group</p>
+      <p className="card__subtitle">Weekly average body measurements</p>
 
       <div className="toolbar">
         <div className="field">
-          <label htmlFor={`${title}-start`}>Start</label>
+          <label htmlFor={`${slug}-start`}>Start</label>
           <input
-            id={`${title}-start`}
+            id={`${slug}-start`}
             className="input"
             type="date"
             value={start}
@@ -75,9 +84,9 @@ export function WeeklyVolumeChart({ title, defaultStart, defaultEnd }: Props) {
           />
         </div>
         <div className="field">
-          <label htmlFor={`${title}-end`}>End</label>
+          <label htmlFor={`${slug}-end`}>End</label>
           <input
-            id={`${title}-end`}
+            id={`${slug}-end`}
             className="input"
             type="date"
             value={end}
@@ -85,16 +94,16 @@ export function WeeklyVolumeChart({ title, defaultStart, defaultEnd }: Props) {
           />
         </div>
         <div className="field">
-          <label htmlFor={`${title}-muscle`}>Muscle</label>
-          <select
-            id={`${title}-muscle`}
-            className="select"
-            value={selectedMuscle}
-            onChange={(e) => setSelectedMuscle(e.target.value)}
+          <label htmlFor={`${slug}-site`}>Site</label>
+          <select // select is a form element that allows the user to select one option from a list of options
+            id={`${slug}-site`}
+            className="select" 
+            value={site}
+            onChange={(e) => setSite(e.target.value as MeasurementSite)}
           >
-            {(muscles.length ? muscles : [selectedMuscle]).map((m) => (
-              <option key={m} value={m}>
-                {m}
+            {MEASUREMENT_SITES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
               </option>
             ))}
           </select>
@@ -106,21 +115,25 @@ export function WeeklyVolumeChart({ title, defaultStart, defaultEnd }: Props) {
 
       {error && <p className="alert alert--error">{error}</p>}
 
-      {chartData.length > 0 && (
+      {rows.length > 0 && (
         <div className="chart-wrap">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={chartMargin}>
+            <LineChart data={rows} margin={chartMargin}>
               <CartesianGrid {...gridStyle} />
               <XAxis dataKey="weekStart" {...axisStyle} />
-              <YAxis allowDecimals={false} {...axisStyle} />
-              <Tooltip {...tooltipStyle} />
+              <YAxis unit={` ${unit}`} allowDecimals {...axisStyle} />
+              <Tooltip
+                {...tooltipStyle}
+                formatter={(value) => [`${value} ${unit}`, siteLabel]}
+              />
               <Legend wrapperStyle={{ fontSize: '12px', color: CHART_COLORS.tick }} />
               <Line
                 type="monotone"
-                dataKey={selectedMuscle}
-                stroke={CHART_COLORS.volume}
+                dataKey="value"
+                name={siteLabel}
+                stroke={CHART_COLORS.measurement}
                 strokeWidth={2.5}
-                dot={{ r: 3, fill: CHART_COLORS.volume }}
+                dot={{ r: 3, fill: CHART_COLORS.measurement }}
                 activeDot={{ r: 5 }}
                 connectNulls
               />
@@ -130,7 +143,10 @@ export function WeeklyVolumeChart({ title, defaultStart, defaultEnd }: Props) {
       )}
 
       {!loading && !error && rows.length === 0 && (
-        <p className="empty-state">Pick a date range and click Load.</p>
+        <p className="empty-state">
+          No measurements in range. Run{' '}
+          <code>npm run db:seed:measurements</code> for sample data.
+        </p>
       )}
     </section>
   )

@@ -10,18 +10,23 @@ import {
   YAxis,
 } from 'recharts'
 import {
+  CHART_COLORS,
+  axisStyle,
+  chartMargin,
+  gridStyle,
+  tooltipStyle,
+} from '../lib/chartTheme'
+import {
   fetchLoggedExercises,
   fetchStrengthTrends,
-} from '../lib/strengthTrends' // api callers
+} from '../lib/strengthTrends'
 import type {
   LoggedExercise,
   StrengthMetric,
   StrengthTrendRow,
 } from '../types/strength'
 
-const CHART_COLOR = '#3b82f6'
-
-type Props = { // define defaults coming from parent
+type Props = {
   title: string
   defaultStart: string
   defaultEnd: string
@@ -36,17 +41,17 @@ export function StrengthTrendChart({
 }: Props) {
   const [start, setStart] = useState(defaultStart)
   const [end, setEnd] = useState(defaultEnd)
-  const [exercises, setExercises] = useState<LoggedExercise[]>([]) // list of exercises
-  const [selectedExerciseId, setSelectedExerciseId] = useState('') // current selected exercise
-  const [rows, setRows] = useState<StrengthTrendRow[]>([]) // plotted points
-  const [exerciseLabel, setExerciseLabel] = useState('') // current selected exercise label
-  const [metric, setMetric] = useState<StrengthMetric>('E1RM') // current selected metric
-  const [loading, setLoading] = useState(false) // loading state
-  const [error, setError] = useState<string | null>(null) // error state
+  const [exercises, setExercises] = useState<LoggedExercise[]>([])
+  const [selectedExerciseId, setSelectedExerciseId] = useState('')
+  const [rows, setRows] = useState<StrengthTrendRow[]>([])
+  const [exerciseLabel, setExerciseLabel] = useState('')
+  const [metric, setMetric] = useState<StrengthMetric>('E1RM')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const chartData = useMemo(() => rows, [rows])
+  const slug = title.replace(/\s+/g, '-').toLowerCase()
 
-  // Fetch exercise list + e1RM series for the selected date range.
   async function load() {
     setLoading(true)
     setError(null)
@@ -62,27 +67,23 @@ export function StrengthTrendChart({
       }
 
       let exerciseId = selectedExerciseId
-      if (!logged.exercises.some((e) => e.exerciseId === exerciseId)) { // check the selected exercise is in the list
-        const preferred = defaultExerciseName // if the default exercise name is set, find the exercise with the same name
-          ? logged.exercises.find((e) => e.exerciseName === defaultExerciseName) 
+      if (!logged.exercises.some((e) => e.exerciseId === exerciseId)) {
+        const preferred = defaultExerciseName
+          ? logged.exercises.find((e) => e.exerciseName === defaultExerciseName)
           : undefined
-        exerciseId = (preferred ?? logged.exercises[0]).exerciseId // set the exercise id to the preferred exercise id or the first exercise id
+        exerciseId = (preferred ?? logged.exercises[0]).exerciseId
         setSelectedExerciseId(exerciseId)
       }
 
-      const trends = await fetchStrengthTrends({
-        exerciseId,
-        start,
-        end,
-      })
-      setRows(trends.rows) // set plotted points
-      setExerciseLabel(trends.exercise.name) // set current selected exercise name
-      setMetric(trends.metric) // set current selected metric
+      const trends = await fetchStrengthTrends({ exerciseId, start, end })
+      setRows(trends.rows)
+      setExerciseLabel(trends.exercise.name)
+      setMetric(trends.metric)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
-      setRows([]) // clear plotted points
+      setRows([])
     } finally {
-      setLoading(false) // set loading state to false
+      setLoading(false)
     }
   }
 
@@ -110,51 +111,41 @@ export function StrengthTrendChart({
   }
 
   const yUnit = metric === 'E1RM' ? ' kg' : ' reps'
-  const seriesLabel =
-    metric === 'E1RM' ? 'Max e1RM' : 'Max reps'
+  const seriesLabel = metric === 'E1RM' ? 'Max e1RM' : 'Max reps'
 
   return (
-    <section style={{ textAlign: 'left', padding: '1.5rem' }}>
-      <h2>{title}</h2>
+    <section className="card">
+      <h2 className="card__title">{title}</h2>
+      <p className="card__subtitle">Weekly peak strength per exercise</p>
 
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.75rem',
-          alignItems: 'end',
-          marginBottom: '1rem',
-        }}
-      >
-        <label>
-          Start
+      <div className="toolbar">
+        <div className="field">
+          <label htmlFor={`${slug}-start`}>Start</label>
           <input
+            id={`${slug}-start`}
+            className="input"
             type="date"
             value={start}
             onChange={(e) => setStart(e.target.value)}
-            style={{ display: 'block', marginTop: '0.25rem' }}
           />
-        </label>
-        <label>
-          End
+        </div>
+        <div className="field">
+          <label htmlFor={`${slug}-end`}>End</label>
           <input
+            id={`${slug}-end`}
+            className="input"
             type="date"
             value={end}
             onChange={(e) => setEnd(e.target.value)}
-            style={{ display: 'block', marginTop: '0.25rem' }}
           />
-        </label>
-        <label>
-          Exercise
+        </div>
+        <div className="field field--wide">
+          <label htmlFor={`${slug}-exercise`}>Exercise</label>
           <select
+            id={`${slug}-exercise`}
+            className="select"
             value={selectedExerciseId}
             onChange={(e) => onExerciseChange(e.target.value)}
-            style={{
-              display: 'block',
-              marginTop: '0.25rem',
-              minWidth: 220,
-              maxWidth: 280,
-            }}
             disabled={loading || !exercises.length}
           >
             {!exercises.length && (
@@ -166,34 +157,36 @@ export function StrengthTrendChart({
               <option key={e.exerciseId} value={e.exerciseId}>
                 {e.exerciseName}
               </option>
-            ))}olka
+            ))}
           </select>
-        </label>
-        <button type="button" onClick={load} disabled={loading}>
+        </div>
+        <button type="button" className="btn" onClick={load} disabled={loading}>
           {loading ? 'Loading…' : 'Load'}
         </button>
       </div>
 
-      {error && <p style={{ color: '#ef4444' }}>{error}</p>}
+      {error && <p className="alert alert--error">{error}</p>}
 
       {chartData.length > 0 && (
-        <div style={{ width: '100%', height: 320 }}>
+        <div className="chart-wrap">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="weekStart" />
-              <YAxis unit={yUnit} allowDecimals={metric === 'E1RM'} />
+            <LineChart data={chartData} margin={chartMargin}>
+              <CartesianGrid {...gridStyle} />
+              <XAxis dataKey="weekStart" {...axisStyle} />
+              <YAxis unit={yUnit} allowDecimals={metric === 'E1RM'} {...axisStyle} />
               <Tooltip
+                {...tooltipStyle}
                 formatter={(value) => [`${value}${yUnit.trim()}`, seriesLabel]}
               />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: '12px', color: CHART_COLORS.tick }} />
               <Line
                 type="monotone"
                 dataKey="value"
                 name={exerciseLabel || seriesLabel}
-                stroke={CHART_COLOR}
-                strokeWidth={2}
-                dot={{ r: 3 }}
+                stroke={CHART_COLORS.strength}
+                strokeWidth={2.5}
+                dot={{ r: 3, fill: CHART_COLORS.strength }}
+                activeDot={{ r: 5 }}
                 connectNulls
               />
             </LineChart>
@@ -202,7 +195,7 @@ export function StrengthTrendChart({
       )}
 
       {!loading && !error && rows.length === 0 && (
-        <p>Pick a date range and click Load.</p>
+        <p className="empty-state">Pick a date range and click Load.</p>
       )}
     </section>
   )

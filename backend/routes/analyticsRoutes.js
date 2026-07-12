@@ -4,6 +4,8 @@ import {
   getStrengthTrends,
   getWeeklyVolume,
 } from "../services/analyticsService.js";
+import { getPeriodInsights } from "../services/insightsService.js";
+import { getMeasurementTrends } from "../services/measurementService.js";
 
 const router = Router();
 
@@ -120,6 +122,88 @@ router.get("/strength-trends", async (req, res, next) => {
     return res.status(200).json(result);
   } catch (err) {
     next(err); // if an error occurs, pass it to the next middleware function
+  }
+});
+
+/**
+ * GET /api/analytics/period-insights?startA&endA&startB&endB&exerciseId?
+ * Rule-based comparison of volume and strength across two periods.
+ */
+router.get("/period-insights", async (req, res, next) => {
+  try {
+    const { startA, endA, startB, endB, exerciseId } = req.query;
+
+    const userId = process.env.DEFAULT_USER_ID;
+    if (!userId) {
+      return res.status(500).json({
+        ok: false,
+        error: "DEFAULT_USER_ID is not configured. Run npm run db:seed and set it in .env.",
+      });
+    }
+
+    if (!startA || !endA || !startB || !endB) {
+      return res.status(400).json({
+        ok: false,
+        error: "Provide startA, endA, startB, and endB (YYYY-MM-DD).",
+      });
+    }
+
+    const result = await getPeriodInsights({
+      userId,
+      startA: String(startA),
+      endA: String(endA),
+      startB: String(startB),
+      endB: String(endB),
+      exerciseId: exerciseId ? String(exerciseId) : undefined,
+    });
+
+    if (!result.ok) {
+      return res.status(result.status ?? 400).json(result);
+    }
+
+    return res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/analytics/measurements?site=BODY_WEIGHT&start&end
+ * Weekly average body measurement trend.
+ */
+router.get("/measurements", async (req, res, next) => {
+  try {
+    const { site, start, end } = req.query;
+
+    const userId = process.env.DEFAULT_USER_ID;
+    if (!userId) {
+      return res.status(500).json({
+        ok: false,
+        error: "DEFAULT_USER_ID is not configured. Run npm run db:seed and set it in .env.",
+      });
+    }
+
+    if (!start || !end) {
+      return res.status(400).json({
+        ok: false,
+        error: "Provide start and end (YYYY-MM-DD).",
+      });
+    }
+
+    const result = await getMeasurementTrends({ // get weekly average body measurement in a date range
+      userId,
+      site: site ? String(site) : "BODY_WEIGHT",
+      start: String(start),
+      end: String(end),
+    });
+
+    if (!result.ok) {
+      return res.status(result.status ?? 400).json(result);
+    }
+
+    return res.status(200).json(result);
+  } catch (err) {
+    next(err);
   }
 });
 

@@ -28,7 +28,7 @@ export async function fetchWeeklyVolume(params: { // date range as YYYY-MM-DD st
   start: string 
   end: string
 }) {
-  const url = new URL('/api/analytics/weekly-volume', window.location.origin)
+  const url = new URL('/api/analytics/weekly-volume', window.location.origin) // window.location.origin is the base URL of the page you’re on — protocol + host + port, no path. //new URL(path, base) builds a full URL: base:  http://localhost:5173 path:  /api/analytics/weekly-volume result: http://localhost:5173/api/analytics/weekly-volume
   // searchParams.set adds query string params
   // these match what the backend expects: GET /api/analytics/weekly-volume?start=...&end=...
   url.searchParams.set('start', params.start)

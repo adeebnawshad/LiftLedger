@@ -9,6 +9,7 @@ export type LoggedExercise = {
   exerciseId: string
   exerciseName: string
   strengthTracking: StrengthMetric
+  primaryMuscleGroup: string
 }
 
 export type StrengthTrendsResponse = {

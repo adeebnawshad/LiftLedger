@@ -163,7 +163,8 @@ export async function getLoggedExercises({ userId, start, end }) {
     SELECT DISTINCT
       e."id" AS "exerciseId",
       e."name" AS "exerciseName",
-      e."strengthTracking" AS "strengthTracking"
+      e."strengthTracking" AS "strengthTracking",
+      e."primaryMuscleGroup" AS "primaryMuscleGroup"
     FROM "WorkoutSet" ws
     JOIN "Workout" w ON ws."workoutId" = w."id"
     JOIN "Exercise" e ON ws."exerciseId" = e."id"
@@ -188,6 +189,7 @@ export async function getLoggedExercises({ userId, start, end }) {
       exerciseId: r.exerciseId,
       exerciseName: r.exerciseName,
       strengthTracking: r.strengthTracking,
+      primaryMuscleGroup: r.primaryMuscleGroup,
     })),
   };
 }
@@ -366,3 +368,4 @@ function normalizeStrengthRows(rows, metric) {
     return { weekStart, value };
   });
 }
+
