@@ -1,11 +1,12 @@
 import { CsvUpload } from './components/CsvUpload'
 import { MeasurementChart } from './components/MeasurementChart'
 import { PeriodInsightsPanel } from './components/PeriodInsightsPanel'
+import { SetsByMuscleTable } from './components/SetsByMuscleTable'
 import { StrengthTrendChart } from './components/StrengthTrendChart'
 import { WeeklyVolumeChart } from './components/WeeklyVolumeChart'
 
-const PERIOD_A = { start: '2026-02-01', end: '2026-02-28', label: 'Period A' }
-const PERIOD_B = { start: '2026-04-01', end: '2026-04-30', label: 'Period B' }
+const PERIOD_A = { start: '2026-01-17', end: '2026-04-04', label: 'Period A' }
+const PERIOD_B = { start: '2026-01-17', end: '2026-04-04', label: 'Period B' }
 
 function App() {
   return (
@@ -65,6 +66,19 @@ function App() {
             defaultEnd="2026-04-30"
             defaultSite="LEFT_ARM"
           />
+
+          <div className="section-grid">
+            <SetsByMuscleTable
+              title="Sets by Muscle — Period A"
+              defaultStart={PERIOD_A.start}
+              defaultEnd={PERIOD_A.end}
+            />
+            <SetsByMuscleTable
+              title="Sets by Muscle — Period B"
+              defaultStart={PERIOD_B.start}
+              defaultEnd={PERIOD_B.end}
+            />
+          </div>
         </div>
       </div>
     </div>

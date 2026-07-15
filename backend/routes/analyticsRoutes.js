@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getLoggedExercises,
+  getSetsByMuscleGroup,
   getStrengthTrends,
   getWeeklyVolume,
 } from "../services/analyticsService.js";
@@ -193,6 +194,46 @@ router.get("/measurements", async (req, res, next) => {
     const result = await getMeasurementTrends({ // get weekly average body measurement in a date range
       userId,
       site: site ? String(site) : "BODY_WEIGHT",
+      start: String(start),
+      end: String(end),
+    });
+
+    if (!result.ok) {
+      return res.status(result.status ?? 400).json(result);
+    }
+
+    return res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/analytics/sets-by-muscle-group?muscleGroup=...&start=...&end=...
+ * Sets by muscle group in a date range.
+ */
+router.get("/sets-by-muscle-group", async (req, res, next) => {
+  try {
+    const { muscleGroup, start, end } = req.query;
+
+    const userId = process.env.DEFAULT_USER_ID;
+    if (!userId) {
+      return res.status(500).json({
+        ok: false,
+        error: "DEFAULT_USER_ID is not configured. Run npm run db:seed and set it in .env.",
+      });
+    }
+
+    if (!start || !end) {
+      return res.status(400).json({
+        ok: false,
+        error: "Provide start and end (YYYY-MM-DD).",
+      });
+    }
+    
+    const result = await getSetsByMuscleGroup({
+      userId,
+      muscleGroup: muscleGroup ? String(muscleGroup) : "",
       start: String(start),
       end: String(end),
     });

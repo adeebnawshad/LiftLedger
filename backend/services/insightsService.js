@@ -176,7 +176,8 @@ function buildInsights(volumeComparison, strengthComparison) {
   for (const s of strengthComparison) {
     if (s.peakA === 0 && s.peakB === 0) continue;
 
-    const unit = s.metric === "E1RM" ? "kg" : "reps";
+    const unit = s.metric === "E1RM" ? 
+    "kg" : "reps";
     const flat =
       Math.abs(s.pctChange) <= STRENGTH_FLAT_THRESHOLD * 100;
 

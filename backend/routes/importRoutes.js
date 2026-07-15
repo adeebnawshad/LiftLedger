@@ -11,6 +11,9 @@ const router = Router();
  * Parses CSV and persists Workout / WorkoutSet rows. Unknown exercises are skipped.
  */
 router.post("/", uploadCsv.single("file"), async (req, res, next) => { // without the single("file") middleware, req.file would be undefined
+  // uploadCsv.single("file") is a middleware that uploads the file to the server and makes it available in req.file.
+  // it also validates the file type and size.
+  // it also reads the file into memory and makes it available in req.file.buffer.
   try {
     if (!req.file) {
       return res.status(400).json({
