@@ -37,6 +37,7 @@ export async function getWeeklyVolume({ userId, weeks, start, end }) {
   };
 }
 
+
 function resolveRange({ weeks, start, end }) {
   const hasStart = start != null && String(start).trim() !== "";
   const hasEnd = end != null && String(end).trim() !== "";
@@ -97,6 +98,7 @@ async function queryWeeklyVolumeByDateRange(userId, start, endExclusive) {
     SELECT
       date_trunc('week', w."startedAt") AS "weekStart",
       e."primaryMuscleGroup" AS "muscleGroup",
+      e."exerciseType" AS "exerciseType",
       COUNT(*)::int AS "setCount"
     FROM "WorkoutSet" ws
     JOIN "Workout" w
@@ -107,8 +109,8 @@ async function queryWeeklyVolumeByDateRange(userId, start, endExclusive) {
       AND ws."setKind" IN ('NORMAL', 'FAILURE', 'DROPSET')
       AND w."startedAt" >= ${start}
       AND w."startedAt" < ${endExclusive}
-    GROUP BY 1, 2
-    ORDER BY 1, 2;
+    GROUP BY 1, 2, 3
+    ORDER BY 1, 2, 3;
   `;
 }
 
@@ -117,6 +119,7 @@ async function queryWeeklyVolumeByWeeks(userId, weeks) {
     SELECT
       date_trunc('week', w."startedAt") AS "weekStart",
       e."primaryMuscleGroup" AS "muscleGroup",
+      e."exerciseType" AS "exerciseType",
       COUNT(*)::int AS "setCount"
     FROM "WorkoutSet" ws
     JOIN "Workout" w
@@ -126,8 +129,8 @@ async function queryWeeklyVolumeByWeeks(userId, weeks) {
     WHERE w."userId" = ${userId}
       AND ws."setKind" IN ('NORMAL', 'FAILURE', 'DROPSET')
       AND w."startedAt" >= date_trunc('week', now()) - ${weeks} * INTERVAL '1 week'
-    GROUP BY 1, 2
-    ORDER BY 1, 2;
+    GROUP BY 1, 2, 3
+    ORDER BY 1, 2, 3;
   `;
 }
 
@@ -142,6 +145,7 @@ function normalizeWeeklyRows(rows) {
     return {
       weekStart,
       muscleGroup: r.muscleGroup,
+      exerciseType: r.exerciseType,
       setCount: Number(r.setCount) || 0,
     };
   });
@@ -368,4 +372,3 @@ function normalizeStrengthRows(rows, metric) {
     return { weekStart, value };
   });
 }
-
