@@ -22,10 +22,14 @@ export type WeekSetTypeTotals = {
   isolation: number
 }
 
-/** Means of the weekly totals over the weeks present in the data. */
+/**
+ * Period averages: sum(sets) / calendarWeekCount.
+ * calendarWeekCount = inclusive days between start and end, divided by 7.
+ */
 export type AverageWeeklySetTypeTotals = {
   avgTotal: number
   avgCompound: number
   avgIsolation: number
+  /** Inclusive date-span days / 7 (may be fractional). */
   weekCount: number
 }

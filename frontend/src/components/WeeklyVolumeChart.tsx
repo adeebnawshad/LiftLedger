@@ -121,8 +121,8 @@ export function WeeklyVolumeChart({ title, defaultStart, defaultEnd }: Props) {
 
   const weekTotals = useMemo(() => totalsByWeek(rows, visible), [rows, visible])
   const averages = useMemo(
-    () => averageWeeklySetTypeTotals(weekTotals),
-    [weekTotals],
+    () => averageWeeklySetTypeTotals(weekTotals, start, end),
+    [weekTotals, start, end],
   )
   const weekTotalsByDate = useMemo(
     () => new Map(weekTotals.map((w) => [w.weekStart, w])),

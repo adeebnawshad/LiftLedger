@@ -140,26 +140,48 @@ export function totalsByWeek(
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart)) // sort the array by week start
 }
 
-/** Average of the weekly totals (only weeks present in `weekTotals`). */
+/** Inclusive calendar days between YYYY-MM-DD start and end (both inclusive). */
+export function inclusiveDayCount(start: string, end: string): number {
+  const s = new Date(`${start}T00:00:00`)
+  const e = new Date(`${end}T00:00:00`)
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()) || e < s) {
+    return 0
+  }
+  const msPerDay = 24 * 60 * 60 * 1000
+  return Math.floor((e.getTime() - s.getTime()) / msPerDay) + 1
+}
+
+/** Inclusive days / 7 — fractional weeks for average denominators. */
+export function calendarWeekCount(start: string, end: string): number {
+  return inclusiveDayCount(start, end) / 7
+}
+
+/**
+ * Average sets per calendar week over the selected date range.
+ * Denominator is (inclusive days between start and end) / 7, not the count of
+ * week-start buckets that happen to have data.
+ */
 export function averageWeeklySetTypeTotals(
   weekTotals: WeekSetTypeTotals[],
+  start: string,
+  end: string,
 ): AverageWeeklySetTypeTotals {
-  const weekCount = weekTotals.length
-  if (weekCount === 0) {
+  const weekCount = calendarWeekCount(start, end)
+  if (weekCount === 0 || weekTotals.length === 0) {
     return { avgTotal: 0, avgCompound: 0, avgIsolation: 0, weekCount: 0 }
   }
 
-  const sumTotal = weekTotals.reduce((s, w) => s + w.total, 0) // s is the accumulator, w is the current element of weekTotals, 0 is the initial value
+  const sumTotal = weekTotals.reduce((s, w) => s + w.total, 0)
   const sumCompound = weekTotals.reduce((s, w) => s + w.compound, 0)
   const sumIsolation = weekTotals.reduce((s, w) => s + w.isolation, 0)
 
-  const round1 = (n: number) => Math.round((n / weekCount) * 10) / 10 // defining a function called round1 that rounds a number to 1 decimal place
+  const round1 = (n: number) => Math.round((n / weekCount) * 10) / 10
 
   return {
     avgTotal: round1(sumTotal),
     avgCompound: round1(sumCompound),
     avgIsolation: round1(sumIsolation),
-    weekCount,
+    weekCount: Math.round(weekCount * 10) / 10,
   }
 }
 
