@@ -19,7 +19,6 @@ export type SetsByMuscleRow = {
   weightAmount: number | null
   weightUnit: string | null
   reps: number
-  setNumber: number
 }
 
 export type SetsByMuscleResponse = {

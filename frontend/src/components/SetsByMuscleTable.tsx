@@ -97,12 +97,11 @@ export function SetsByMuscleTable({
                 <th>Exercise</th>
                 <th>Weight</th>
                 <th>Reps</th>
-                <th>Set</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={`${row.date}-${row.exerciseName}-${row.setNumber}-${i}`}>
+                <tr key={`${row.date}-${row.exerciseName}-${i}`}>
                   <td>{row.date}</td>
                   <td>{row.exerciseName}</td>
                   <td>
@@ -111,7 +110,6 @@ export function SetsByMuscleTable({
                       : `${row.weightAmount} ${row.weightUnit ?? ''}`.trim()}
                   </td>
                   <td>{row.reps}</td>
-                  <td>{row.setNumber}</td>
                 </tr>
               ))}
             </tbody>
