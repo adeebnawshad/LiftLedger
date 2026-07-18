@@ -200,7 +200,7 @@ export async function getLoggedExercises({ userId, start, end }) {
 
 /**
  * Weekly max estimated 1RM (Epley) per exercise. Rep+weight sets only; excludes WARMUP.
- * Weights normalized to kg. One series per distinct Exercise (Hevy title).
+ * Weights normalized to lb (Hevy CSV is weight_lbs). One series per distinct Exercise.
  *
  * @param {{ userId: string, exerciseId: string, weeks?: number, start?: string, end?: string }} params
  */
@@ -293,7 +293,7 @@ async function queryStrengthTrendsByDateRange(
       MAX(
         (
           CASE
-            WHEN ws."weightUnit" = 'LB' THEN ws."weightAmount"::float * 0.45359237
+            WHEN ws."weightUnit" = 'KG' THEN ws."weightAmount"::float * 2.20462262
             ELSE ws."weightAmount"::float
           END
         ) * (1 + ws.reps::float / 30.0)
@@ -338,7 +338,7 @@ async function queryStrengthTrendsByWeeks(userId, exerciseId, weeks, metric) {
       MAX(
         (
           CASE
-            WHEN ws."weightUnit" = 'LB' THEN ws."weightAmount"::float * 0.45359237
+            WHEN ws."weightUnit" = 'KG' THEN ws."weightAmount"::float * 2.20462262
             ELSE ws."weightAmount"::float
           END
         ) * (1 + ws.reps::float / 30.0)
