@@ -14,11 +14,13 @@ import {
   axisStyle,
   chartMargin,
   gridStyle,
-  tooltipStyle,
 } from '../lib/chartTheme'
 import {
   fetchLoggedExercises,
   fetchStrengthTrends,
+  formatPctFromFirst,
+  withPctChangeFromFirst,
+  type StrengthTrendChartRow,
 } from '../lib/strengthTrends'
 import type {
   LoggedExercise,
@@ -31,6 +33,57 @@ type Props = {
   defaultStart: string
   defaultEnd: string
   defaultExerciseName?: string
+}
+
+type TooltipPayloadItem = {
+  name?: string | number
+  value?: number | string | ReadonlyArray<number | string>
+  color?: string
+  payload?: StrengthTrendChartRow
+}
+
+type StrengthTooltipProps = {
+  active?: boolean
+  payload?: ReadonlyArray<TooltipPayloadItem>
+  label?: string | number
+  yUnit: string
+  seriesLabel: string
+}
+
+function StrengthTooltip({
+  active,
+  payload,
+  label,
+  yUnit,
+  seriesLabel,
+}: StrengthTooltipProps) {
+  if (!active || !payload?.length) return null
+
+  const item = payload[0]
+  const row = item.payload
+  const raw = item.value
+  const value = typeof raw === 'number' ? raw : Number(raw) || 0
+  const pct = row?.pctFromFirst ?? 0
+  const unit = yUnit.trim()
+
+  return (
+    <div className="chart-tooltip">
+      <div className="chart-tooltip__label">{String(label ?? '')}</div>
+      <div className="chart-tooltip__row">
+        <span
+          className="chart-tooltip__swatch"
+          style={{ background: CHART_COLORS.strength }}
+        />
+        <span>
+          {seriesLabel}: {value}
+          {unit ? ` ${unit}` : ''}
+        </span>
+      </div>
+      <div className="chart-tooltip__summary">
+        {formatPctFromFirst(pct)} from first week
+      </div>
+    </div>
+  )
 }
 
 export function StrengthTrendChart({
@@ -49,7 +102,7 @@ export function StrengthTrendChart({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const chartData = useMemo(() => rows, [rows])
+  const chartData = useMemo(() => withPctChangeFromFirst(rows), [rows])
   const slug = title.replace(/\s+/g, '-').toLowerCase()
 
   async function load() {
@@ -110,7 +163,7 @@ export function StrengthTrendChart({
     }
   }
 
-  const yUnit = metric === 'E1RM' ? ' kg' : ' reps'
+  const yUnit = metric === 'E1RM' ? ' lbs' : ' reps'
   const seriesLabel = metric === 'E1RM' ? 'Max e1RM' : 'Max reps'
 
   return (
@@ -173,12 +226,25 @@ export function StrengthTrendChart({
             <LineChart data={chartData} margin={chartMargin}>
               <CartesianGrid {...gridStyle} />
               <XAxis dataKey="weekStart" {...axisStyle} />
-              <YAxis unit={yUnit} allowDecimals={metric === 'E1RM'} {...axisStyle} />
-              <Tooltip
-                {...tooltipStyle}
-                formatter={(value) => [`${value}${yUnit.trim()}`, seriesLabel]}
+              <YAxis
+                unit={yUnit}
+                allowDecimals={metric === 'E1RM'}
+                {...axisStyle}
               />
-              <Legend wrapperStyle={{ fontSize: '12px', color: CHART_COLORS.tick }} />
+              <Tooltip
+                content={(props) => (
+                  <StrengthTooltip
+                    active={props.active}
+                    payload={props.payload}
+                    label={props.label}
+                    yUnit={yUnit}
+                    seriesLabel={seriesLabel}
+                  />
+                )}
+              />
+              <Legend
+                wrapperStyle={{ fontSize: '12px', color: CHART_COLORS.tick }}
+              />
               <Line
                 type="monotone"
                 dataKey="value"
