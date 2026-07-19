@@ -90,30 +90,30 @@ export function SetsByMuscleTable({
 
       {rows.length > 0 && (
         <>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Exercise</th>
-                <th>Weight</th>
-                <th>Reps</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, i) => (
-                <tr key={`${row.date}-${row.exerciseName}-${i}`}>
-                  <td>{row.date}</td>
-                  <td>{row.exerciseName}</td>
-                  <td>
-                    {row.weightAmount == null
-                      ? '—'
-                      : `${row.weightAmount} ${row.weightUnit ?? ''}`.trim()}
-                  </td>
-                  <td>{row.reps}</td>
+          <div className="table-wrap">
+            <table className="table table--sets">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Exercise</th>
+                  <th className="table__num">lbs</th>
+                  <th className="table__num">Reps</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr key={`${row.date}-${row.exerciseName}-${i}`}>
+                    <td className="table__date">{row.date}</td>
+                    <td>{row.exerciseName}</td>
+                    <td className="table__num">
+                      {row.weightAmount == null ? '—' : row.weightAmount}
+                    </td>
+                    <td className="table__num">{row.reps}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p className="card__subtitle">{rows.length} sets in range</p>
         </>
       )}
