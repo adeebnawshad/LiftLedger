@@ -372,3 +372,68 @@ function normalizeStrengthRows(rows, metric) {
     return { weekStart, value };
   });
 }
+
+/**
+ * Raw hard sets for one muscle group in an inclusive date range (no weekly rollup).
+ *
+ * @param {{ userId: string, muscleGroup: string, start: string, end: string }} params
+ */
+export async function getSetsByMuscleGroup({ userId, muscleGroup, start, end }) {
+  const parsed = parseInclusiveDateRange(start, end);
+  if (!parsed.ok) {
+    return { ok: false, status: 400, error: parsed.error };
+  }
+
+  const muscle = String(muscleGroup ?? "").trim().toUpperCase();
+  if (!muscle) {
+    return { ok: false, status: 400, error: "muscleGroup is required." };
+  }
+
+  const rows = await prisma.$queryRaw`
+    SELECT
+      w."startedAt" AS "startedAt",
+      e."name" AS "exerciseName",
+      ws."weightAmount" AS "weightAmount",
+      ws."weightUnit" AS "weightUnit",
+      ws.reps AS "reps",
+      ws."orderIndex" AS "setNumber"
+    FROM "WorkoutSet" ws
+    JOIN "Workout" w ON ws."workoutId" = w."id"
+    JOIN "Exercise" e ON ws."exerciseId" = e."id"
+    WHERE w."userId" = ${userId}
+      AND ws."setKind" IN ('NORMAL', 'FAILURE', 'DROPSET')
+      AND ws.reps IS NOT NULL
+      AND ws.reps > 0
+      AND e."primaryMuscleGroup" = ${muscle}::"MuscleGroup"
+      AND w."startedAt" >= ${parsed.start}
+      AND w."startedAt" < ${parsed.endExclusive}
+    ORDER BY w."startedAt", e."name", ws."orderIndex";
+  `;
+
+  return {
+    ok: true,
+    muscleGroup: muscle,
+    range: { start: parsed.startLabel, end: parsed.endLabel },
+    rows: normalizeSetsByMuscleRows(rows),
+  };
+}
+
+function normalizeSetsByMuscleRows(rows) {
+  return rows.map((r) => {
+    const dt =
+      r.startedAt instanceof Date ? r.startedAt : new Date(r.startedAt);
+    const date = Number.isNaN(dt.getTime())
+      ? String(r.startedAt)
+      : dt.toISOString().slice(0, 10);
+
+    return {
+      date,
+      exerciseName: r.exerciseName,
+      weightAmount:
+        r.weightAmount == null ? null : Number(r.weightAmount),
+      weightUnit: r.weightUnit ?? null,
+      reps: Number(r.reps) || 0,
+      setNumber: Number(r.setNumber) + 1,
+    };
+  });
+}
