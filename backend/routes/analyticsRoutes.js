@@ -6,7 +6,7 @@ import {
   getWeeklyVolume,
 } from "../services/analyticsService.js";
 import { getPeriodInsights } from "../services/insightsService.js";
-import { getMeasurementTrends } from "../services/measurementService.js";
+import { getMeasurementTrends, getMeasurementScatter } from "../services/measurementService.js";
 
 const router = Router();
 
@@ -169,12 +169,12 @@ router.get("/period-insights", async (req, res, next) => {
 });
 
 /**
- * GET /api/analytics/measurements?site=BODY_WEIGHT&start&end
- * Weekly average body measurement trend.
+ * GET /api/analytics/measurements?site=BODY_WEIGHT
+ * All dated body measurement points for a site (lbs / inches).
  */
 router.get("/measurements", async (req, res, next) => {
   try {
-    const { site, start, end } = req.query;
+    const { site } = req.query;
 
     const userId = process.env.DEFAULT_USER_ID;
     if (!userId) {
@@ -184,20 +184,50 @@ router.get("/measurements", async (req, res, next) => {
       });
     }
 
-    if (!start || !end) {
-      return res.status(400).json({
+    const result = await getMeasurementTrends({
+      userId,
+      site: site ? String(site) : "BODY_WEIGHT",
+    });
+
+    if (!result.ok) {
+      return res.status(result.status ?? 400).json(result);
+    }
+
+    return res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/analytics/measurements-scatter?site=LEFT_ARM
+ * Same-day bodyweight vs girth pairs. Rows: { measuredAt, bodyweight, measurement } - the rows array in the object returned by getMeasurementScatter().
+ * measuredAt is for tooltip only (not chart axes).
+ */
+router.get("/measurements-scatter", async (req, res, next) => {
+  try {
+    const site = req.query.site; // same as { site } = req.query ({ site } = req.query is a destructuring assignment, site = req.query.site is equivalent)
+
+    const userId = process.env.DEFAULT_USER_ID;
+    if (!userId) {
+      return res.status(500).json({
         ok: false,
-        error: "Provide start and end (YYYY-MM-DD).",
+        error: "DEFAULT_USER_ID is not configured. Run npm run db:seed and set it in .env.",
       });
     }
 
-    const result = await getMeasurementTrends({ // get weekly average body measurement in a date range
-      userId,
-      site: site ? String(site) : "BODY_WEIGHT",
-      start: String(start),
-      end: String(end),
-    });
+    if (!site) {
+      return res.status(400).json({
+        ok: false,
+        error:
+          "Provide a girth site (e.g. LEFT_ARM, CHEST, WAIST) — not BODY_WEIGHT.",
+      });
+    }
 
+    const result = await getMeasurementScatter({
+      userId,
+      site: String(site),
+    });
     if (!result.ok) {
       return res.status(result.status ?? 400).json(result);
     }

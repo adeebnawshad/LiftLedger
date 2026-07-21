@@ -6,7 +6,7 @@ export type MeasurementSite =
   | 'WAIST'
 
 export type MeasurementRow = {
-  weekStart: string
+  measuredAt: string
   value: number
 }
 
@@ -14,7 +14,6 @@ export type MeasurementTrendsResponse = {
   ok: boolean
   site: MeasurementSite
   unit: string
-  range: { start: string; end: string }
   rows: MeasurementRow[]
   error?: string
 }

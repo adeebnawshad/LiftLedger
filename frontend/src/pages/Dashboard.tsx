@@ -45,14 +45,10 @@ export function Dashboard() {
       <div className="section-grid">
         <MeasurementChart
           title="Size — Body weight"
-          defaultStart="2026-02-01"
-          defaultEnd="2026-04-30"
           defaultSite="BODY_WEIGHT"
         />
         <MeasurementChart
           title="Size — Left arm"
-          defaultStart="2026-02-01"
-          defaultEnd="2026-04-30"
           defaultSite="LEFT_ARM"
         />
       </div>

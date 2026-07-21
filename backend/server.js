@@ -26,6 +26,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/import", importRoutes); // For any request whose URL starts with /api/import, run everything defined on importRoutes.
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/measurements", measurementRoutes);
 
 const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

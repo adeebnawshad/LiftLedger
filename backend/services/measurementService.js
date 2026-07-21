@@ -2,77 +2,172 @@ import { prisma } from "../prisma.js";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/**
- * Weekly average measurement value for a body site in a date range.
- *
- * @param {{ userId: string, site: string, start: string, end: string }} params
- */
-export async function getMeasurementTrends({ userId, site, start, end }) {
-  const parsed = parseInclusiveDateRange(start, end);
-  if (!parsed.ok) {
-    return { ok: false, status: 400, error: parsed.error };
-  }
+const MEASUREMENT_SITES = new Set([
+  "BODY_WEIGHT",
+  "NECK",
+  "CHEST",
+  "WAIST",
+  "HIPS",
+  "LEFT_ARM",
+  "RIGHT_ARM",
+  "LEFT_FOREARM",
+  "RIGHT_FOREARM",
+  "LEFT_THIGH",
+  "RIGHT_THIGH",
+  "LEFT_CALF",
+  "RIGHT_CALF",
+]);
 
+/**
+ * Return all measurement entries (date, value) for a user and site.
+ *
+ * @param {{ userId: string, site?: string }} params
+ */
+export async function getMeasurementTrends({ userId, site }) {
   const siteValue = String(site ?? "BODY_WEIGHT").toUpperCase();
+  if (!MEASUREMENT_SITES.has(siteValue)) {
+    return { ok: false, status: 400, error: "Invalid measurement site." };
+  }
 
   const rows = await prisma.$queryRaw`
     SELECT
-      date_trunc('week', m."measuredAt") AS "weekStart",
-      AVG(m.value::float) AS "value"
+      m."measuredAt",
+      m.value
     FROM "BodyMeasurementEntry" m
     WHERE m."userId" = ${userId}
       AND m.site = ${siteValue}::"MeasurementSite"
-      AND m."measuredAt" >= ${parsed.start}
-      AND m."measuredAt" < ${parsed.endExclusive}
-    GROUP BY 1
-    ORDER BY 1;
+    ORDER BY m."measuredAt" ASC;
   `;
 
   return {
     ok: true,
     site: siteValue,
-    unit: siteValue === "BODY_WEIGHT" ? "kg" : "cm",
-    range: { start: parsed.startLabel, end: parsed.endLabel },
+    unit: siteValue === "BODY_WEIGHT" ? "lbs" : "inches",
     rows: normalizeMeasurementRows(rows),
   };
 }
 
-function parseInclusiveDateRange(startStr, endStr) {
-  if (!DATE_RE.test(startStr) || !DATE_RE.test(endStr)) {
-    return { ok: false, error: "Dates must be YYYY-MM-DD." };
+
+/**
+ * Same-day bodyweight vs girth pairs for scatter chart.
+ * Date is for tooltip only (axes use bodyweight / measurement).
+ *
+ * @param {{ userId: string, site: string }} params
+ */
+export async function getMeasurementScatter({ userId, site }) {
+  const siteValue = String(site ?? "").toUpperCase();
+  if (!MEASUREMENT_SITES.has(siteValue) || siteValue === "BODY_WEIGHT") {
+    return {
+      ok: false,
+      status: 400,
+      error: "Invalid measurement site to compare against body weight.",
+    };
   }
 
-  const start = new Date(`${startStr}T00:00:00.000Z`);
-  const end = new Date(`${endStr}T00:00:00.000Z`);
-
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return { ok: false, error: "Invalid date." };
-  }
-
-  if (start > end) {
-    return { ok: false, error: "start must be on or before end." };
-  }
-
-  const endExclusive = new Date(end);
-  endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+  const rows = await prisma.$queryRaw`
+    SELECT
+      (m."measuredAt" AT TIME ZONE 'UTC')::date AS "measuredAt",
+      bw.value AS bodyweight,
+      m.value AS measurement
+    FROM "BodyMeasurementEntry" m
+    INNER JOIN "BodyMeasurementEntry" bw
+      ON bw."userId" = m."userId"
+      AND bw.site = 'BODY_WEIGHT'::"MeasurementSite"
+      AND (bw."measuredAt" AT TIME ZONE 'UTC')::date
+        = (m."measuredAt" AT TIME ZONE 'UTC')::date
+    WHERE m."userId" = ${userId}
+      AND m.site = ${siteValue}::"MeasurementSite"
+    ORDER BY bodyweight ASC
+  `;
 
   return {
     ok: true,
-    start,
-    endExclusive,
-    startLabel: startStr,
-    endLabel: endStr,
+    site: siteValue,
+    units: { bodyweight: "lbs", measurement: "inches" },
+    rows: normalizeScatterRows(rows),
   };
 }
 
 function normalizeMeasurementRows(rows) {
   return rows.map((r) => {
     const dt =
-      r.weekStart instanceof Date ? r.weekStart : new Date(r.weekStart);
-    const weekStart = Number.isNaN(dt.getTime())
-      ? String(r.weekStart)
+      r.measuredAt instanceof Date ? r.measuredAt : new Date(r.measuredAt);
+    const measuredAt = Number.isNaN(dt.getTime())
+      ? String(r.measuredAt)
       : dt.toISOString().slice(0, 10);
-    const value = Math.round((Number(r.value) || 0) * 10) / 10;
-    return { weekStart, value };
+    const value = Math.round((Number(r.value) || 0) * 10) / 10; // round to 1 decimal place
+    return { measuredAt, value };
   });
+}
+
+function normalizeScatterRows(rows) {
+  const round1 = (n) => Math.round((Number(n) || 0) * 10) / 10;
+  return rows.map((r) => {
+    const dt =
+      r.measuredAt instanceof Date ? r.measuredAt : new Date(r.measuredAt);
+    const measuredAt = Number.isNaN(dt.getTime())
+      ? String(r.measuredAt).slice(0, 10)
+      : dt.toISOString().slice(0, 10);
+    return {
+      measuredAt,
+      bodyweight: round1(r.bodyweight),
+      measurement: round1(r.measurement),
+    };
+  });
+}
+
+/**
+ * Create a single body measurement entry (lbs for BODY_WEIGHT, inches otherwise).
+ *
+ * @param {{ userId: string, site: string, value: number|string, measuredAt: string, notes?: string|null }} params
+ */
+export async function createMeasurementEntry({
+  userId,
+  site,
+  value,
+  measuredAt,
+  notes,
+}) {
+  if (!userId) {
+    return { ok: false, status: 400, error: "userId is required." };
+  }
+
+  const siteValue = String(site ?? "").toUpperCase();
+  if (!MEASUREMENT_SITES.has(siteValue)) {
+    return { ok: false, status: 400, error: "Invalid measurement site." };
+  }
+
+  if (!DATE_RE.test(String(measuredAt ?? ""))) {
+    return { ok: false, status: 400, error: "measuredAt must be YYYY-MM-DD." };
+  }
+
+  const measuredAtDate = new Date(`${measuredAt}T00:00:00.000Z`);
+  if (Number.isNaN(measuredAtDate.getTime())) { // check if the date is valid
+    return { ok: false, status: 400, error: "Invalid measuredAt date." };
+  }
+
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return { ok: false, status: 400, error: "value must be a positive number." };
+  }
+
+  const notesValue =
+    notes == null || String(notes).trim() === ""
+      ? null
+      : String(notes).trim();
+
+  try {
+    const entry = await prisma.bodyMeasurementEntry.create({
+      data: {
+        userId,
+        site: siteValue,
+        value: numericValue,
+        measuredAt: measuredAtDate,
+        notes: notesValue,
+      },
+    });
+    return { ok: true, entry };
+  } catch (error) {
+    return { ok: false, status: 500, error: error.message };
+  }
 }

@@ -24,22 +24,16 @@ import type { MeasurementRow, MeasurementSite } from '../types/measurements'
 
 type Props = {
   title: string
-  defaultStart: string
-  defaultEnd: string
   defaultSite?: MeasurementSite
 }
 
 export function MeasurementChart({
   title,
-  defaultStart,
-  defaultEnd,
   defaultSite = 'BODY_WEIGHT',
 }: Props) {
-  const [start, setStart] = useState(defaultStart)
-  const [end, setEnd] = useState(defaultEnd)
   const [site, setSite] = useState<MeasurementSite>(defaultSite)
   const [rows, setRows] = useState<MeasurementRow[]>([])
-  const [unit, setUnit] = useState('kg')
+  const [unit, setUnit] = useState('lbs')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -49,7 +43,7 @@ export function MeasurementChart({
     setLoading(true)
     setError(null)
     try {
-      const result = await fetchMeasurementTrends({ site, start, end })
+      const result = await fetchMeasurementTrends({ site })
       setRows(result.rows)
       setUnit(result.unit)
     } catch (err) {
@@ -70,34 +64,14 @@ export function MeasurementChart({
   return (
     <section className="card">
       <h2 className="card__title">{title}</h2>
-      <p className="card__subtitle">Weekly average body measurements</p>
+      <p className="card__subtitle">All recorded measurements for this site</p>
 
       <div className="toolbar">
-        <div className="field">
-          <label htmlFor={`${slug}-start`}>Start</label>
-          <input
-            id={`${slug}-start`}
-            className="input"
-            type="date"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor={`${slug}-end`}>End</label>
-          <input
-            id={`${slug}-end`}
-            className="input"
-            type="date"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-          />
-        </div>
         <div className="field">
           <label htmlFor={`${slug}-site`}>Site</label>
           <select // select is a form element that allows the user to select one option from a list of options
             id={`${slug}-site`}
-            className="select" 
+            className="select"
             value={site}
             onChange={(e) => setSite(e.target.value as MeasurementSite)}
           >
@@ -120,7 +94,7 @@ export function MeasurementChart({
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={rows} margin={chartMargin}>
               <CartesianGrid {...gridStyle} />
-              <XAxis dataKey="weekStart" {...axisStyle} />
+              <XAxis dataKey="measuredAt" {...axisStyle} />
               <YAxis unit={` ${unit}`} allowDecimals {...axisStyle} />
               <Tooltip
                 {...tooltipStyle}
@@ -144,7 +118,7 @@ export function MeasurementChart({
 
       {!loading && !error && rows.length === 0 && (
         <p className="empty-state">
-          No measurements in range. Run{' '}
+          No measurements yet. Run{' '}
           <code>npm run db:seed:measurements</code> for sample data.
         </p>
       )}

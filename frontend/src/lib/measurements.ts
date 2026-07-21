@@ -5,13 +5,9 @@ import type {
 
 export async function fetchMeasurementTrends(params: {
   site: MeasurementSite
-  start: string
-  end: string
 }) {
   const url = new URL('/api/analytics/measurements', window.location.origin)
   url.searchParams.set('site', params.site)
-  url.searchParams.set('start', params.start)
-  url.searchParams.set('end', params.end)
 
   const res = await fetch(url)
   const data = (await res.json()) as MeasurementTrendsResponse
