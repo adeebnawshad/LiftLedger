@@ -7,10 +7,12 @@ function App() {
   return (
     <div className="app">
       <header className="hero">
-        <span className="hero__badge">Training analytics</span>
-        <h1>LiftLedger</h1>
-        <p>
-          Compare volume, strength, and size across training periods.
+        <p className="hero__eyebrow">Training analytics</p>
+        <h1 className="hero__brand">
+          Lift<span className="hero__brand-accent">Ledger</span>
+        </h1>
+        <p className="hero__tagline">
+          Track volume, strength, and size across training blocks.
         </p>
         <nav className="nav" aria-label="Main">
           <NavLink to="/" end className="nav__link">
@@ -25,7 +27,7 @@ function App() {
         </nav>
       </header>
 
-      <Routes>j
+      <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/data" element={<DataPage />} />
         <Route path="/sets-by-muscle" element={<SetsByMusclePage />} />
