@@ -59,7 +59,7 @@ export function MeasurementChart({
   }, [])
 
   const siteLabel =
-    MEASUREMENT_SITES.find((s) => s.value === site)?.label ?? site
+    MEASUREMENT_SITES.find((s) => s.value === site)?.label ?? site // 
 
   return (
     <section className="card">

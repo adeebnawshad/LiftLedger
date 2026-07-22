@@ -182,6 +182,42 @@ body {
   margin-bottom: 1.25rem;
 }
 
+.import-mode {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+
+.import-mode__legend {
+  padding: 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.import-mode__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
+  font-size: 0.875rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.import-mode__option input {
+  margin-top: 0.2rem;
+  accent-color: var(--accent);
+}
+
+.import-mode__option strong {
+  font-weight: 600;
+}
+
 .measurement-form-grid {
   display: grid;
   grid-template-columns: 1fr;

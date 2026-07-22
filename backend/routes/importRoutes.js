@@ -7,8 +7,9 @@ const router = Router();
 
 /**
  * POST /api/import
- * Body: multipart/form-data, field name "file" (Hevy CSV export).
- * Parses CSV and persists Workout / WorkoutSet rows. Unknown exercises are skipped.
+ * Body: multipart/form-data
+ * - file: Hevy CSV export
+ * - mode: "replace" (default) | "append"
  */
 router.post("/", uploadCsv.single("file"), async (req, res, next) => { // without the single("file") middleware, req.file would be undefined
   // uploadCsv.single("file") is a middleware that uploads the file to the server and makes it available in req.file.
@@ -29,10 +30,14 @@ router.post("/", uploadCsv.single("file"), async (req, res, next) => { // withou
     }
 
     const csvText = req.file.buffer.toString("utf8");
+    const modeRaw = String(req.body?.mode ?? "replace").toLowerCase();
+    const mode = modeRaw === "append" ? "append" : "replace";
+
     const result = await importHevyCsvToDb({
       csvText,
       fileName: req.file.originalname,
       userId,
+      mode,
     });
 
     if (!result.ok) {

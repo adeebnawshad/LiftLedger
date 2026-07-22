@@ -1,16 +1,40 @@
 import { useState, type SubmitEvent } from 'react'
 
+type ImportMode = 'replace' | 'append'
+
 type ImportStats = {
   workoutsCreated?: number
   setsImported?: number
   setsSkipped?: number
+  mode?: ImportMode
+}
+
+const LAST_IMPORT_KEY = 'liftledger:last-csv-import'
+
+function readLastImport(): ImportStats | null {
+  try {
+    const raw = sessionStorage.getItem(LAST_IMPORT_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as ImportStats
+  } catch {
+    return null
+  }
+}
+
+function writeLastImport(stats: ImportStats) {
+  try {
+    sessionStorage.setItem(LAST_IMPORT_KEY, JSON.stringify(stats))
+  } catch {
+    // ignore quota / private mode
+  }
 }
 
 export function CsvUpload() {
   const [file, setFile] = useState<File | null>(null)
+  const [mode, setMode] = useState<ImportMode>('replace')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [stats, setStats] = useState<ImportStats | null>(null)
+  const [stats, setStats] = useState<ImportStats | null>(() => readLastImport())
 
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -24,26 +48,29 @@ export function CsvUpload() {
     setStats(null)
 
     try {
-      const body = new FormData() // new FormData() is a built-in JavaScript object that allows you to easily construct a set of key-value pairs representing form fields and their values.
-      body.append('file', file) // append() is a method that adds a new key-value pair to the FormData object.
+      const body = new FormData()
+      body.append('file', file)
+      body.append('mode', mode)
 
       const res = await fetch('/api/import', { method: 'POST', body })
-      // You don’t set Content-Type yourself. The browser sets it to something like:
-      // multipart/form-data; boundary=----WebKitFormBoundary...
-      // and includes the file bytes in the body
-      // the file bytes are the actual binary data of the file, not the file name or other metadata.
-
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error ?? `HTTP ${res.status}`)
+        throw new Error(
+          data.detail
+            ? `${data.error ?? 'Import failed'}: ${data.detail}`
+            : (data.error ?? `HTTP ${res.status}`),
+        )
       }
 
-      setStats({
+      const next: ImportStats = {
         workoutsCreated: data.stats?.workoutsCreated,
         setsImported: data.stats?.setsImported,
         setsSkipped: data.stats?.setsSkipped,
-      })
+        mode: data.mode ?? mode,
+      }
+      writeLastImport(next)
+      setStats(next)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed')
     } finally {
@@ -58,32 +85,69 @@ export function CsvUpload() {
         Upload a workout export to populate your analytics
       </p>
 
-      <form className="toolbar" onSubmit={onSubmit}>
-        <div className="field">
-          <label htmlFor="csv-file">CSV file</label>
-          <input
-            id="csv-file"
-            className="input"
-            type="file"
-            accept=".csv,text/csv"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          />
+      <form onSubmit={onSubmit}>
+        <div className="toolbar">
+          <div className="field">
+            <label htmlFor="csv-file">CSV file</label>
+            <input
+              id="csv-file"
+              className="input"
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
+          <button type="submit" className="btn" disabled={loading || !file}>
+            {loading ? 'Importing…' : 'Upload & import'}
+          </button>
         </div>
-        <button type="submit" className="btn" disabled={loading || !file}>
-          {loading ? 'Importing…' : 'Upload & import'}
-        </button>
+
+        <fieldset className="import-mode">
+          <legend className="import-mode__legend">Import mode</legend>
+          <label className="import-mode__option">
+            <input
+              type="radio"
+              name="import-mode"
+              value="replace"
+              checked={mode === 'replace'}
+              onChange={() => setMode('replace')}
+            />
+            <span>
+              <strong>Replace</strong> all workout history (recommended when
+              re-exporting from Hevy)
+            </span>
+          </label>
+          <label className="import-mode__option">
+            <input
+              type="radio"
+              name="import-mode"
+              value="append"
+              checked={mode === 'append'}
+              onChange={() => setMode('append')}
+            />
+            <span>
+              <strong>Append</strong> to existing workouts (can double-count if
+              you upload the same export twice)
+            </span>
+          </label>
+        </fieldset>
       </form>
+
+      {loading && (
+        <p className="alert">
+          Large exports can take several minutes. Stay on this page until the
+          result appears — leaving or refreshing cancels the browser wait even
+          if the server keeps going.
+        </p>
+      )}
 
       {error && <p className="alert alert--error">{error}</p>}
 
       {stats && (
         <p className="alert alert--success">
-          Imported {stats.workoutsCreated ?? 0} workouts,{' '}
-          {stats.setsImported ?? 0} sets
-          {stats.setsSkipped != null && stats.setsSkipped > 0
-            ? ` (${stats.setsSkipped} skipped)`
-            : ''}
-          .
+          {stats.mode === 'replace' ? 'Replaced and imported' : 'Appended'}{' '}
+          {stats.workoutsCreated ?? 0} workouts, {stats.setsImported ?? 0} sets
+          {` (${stats.setsSkipped ?? 0} skipped)`}.
         </p>
       )}
     </section>

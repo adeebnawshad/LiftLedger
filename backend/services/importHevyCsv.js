@@ -5,14 +5,16 @@ import { normalizeAlias } from "../../prisma/lib/normalizeAlias.js";
 
 const MAX_SAMPLE_ROWS = 3;
 
-/** Prisma default interactive transaction timeout is 5s — large Hevy exports need more. */
-const IMPORT_TRANSACTION_TIMEOUT_MS = 600_000; // 10 minutes
+/** Workouts per short transaction — avoids one giant txn timing out on large CSVs. */
+const WORKOUT_BATCH_SIZE = 40;
+const BATCH_TRANSACTION_TIMEOUT_MS = 120_000;
 
 /**
  * @typedef {Object} ImportHevyCsvResult
  * @property {boolean} ok
  * @property {number} [status] // brackets mean optional
  * @property {string} [error]
+ * @property {string} [detail]
  * @property {string} [importId]
  * @property {string} [fileName]
  * @property {object} [stats]
@@ -23,10 +25,17 @@ const IMPORT_TRANSACTION_TIMEOUT_MS = 600_000; // 10 minutes
 /**
  * Parse a Hevy CSV and persist workouts/sets. Unknown exercises are skipped, not fatal.
  *
- * @param {{ csvText: string, fileName: string, userId: string }} params
+ * @param {{ csvText: string, fileName: string, userId: string, mode?: 'replace' | 'append' }} params
  * @returns {Promise<ImportHevyCsvResult>}
  */
-export async function importHevyCsvToDb({ csvText, fileName, userId }) {
+export async function importHevyCsvToDb({
+  csvText,
+  fileName,
+  userId,
+  mode = "replace",
+}) {
+  const importMode = mode === "append" ? "append" : "replace";
+
   const parsed = parseHevyCsv(csvText);
 
   if (hasFatalParseErrors(parsed.errors)) { // error on header row or invalid file
@@ -55,18 +64,8 @@ export async function importHevyCsvToDb({ csvText, fileName, userId }) {
 
   const workoutGroups = groupRowsByWorkout(parsed.rows); // group rows by workout - workoutTitle, startedAt, sets[] (each set is a row from the CSV)
 
-  try {
-    const summary = await prisma.$transaction(async (tx) => { // $transaction - run many DB operations as one unit. tx is a database transaction object - a prisma client that only works inside this tranascation
-      const csvImport = await tx.csvImport.create({  // tx - prisma client for the current transaction. .csvImport - the CsvImport table from our schema / model. .create() creates a new row in the table.
-        data: { // INSERT INTO "CsvImport" (userId, fileName, status) VALUES (?, ?, ?)
-          userId,
-          fileName,
-          status: "PROCESSING", // "PROCESSING" - the import is in progress
-        },
-      });
-
-      let workoutsCreated = 0;
-      let setsImported = 0;
+  /** @type {{ startedAt: Date, notes: string | null, sets: ReturnType<typeof toWorkoutSetCreate>[] }[]} */
+  const preparedWorkouts = [];
 
       for (const group of workoutGroups) {
         /** @type {{ row: import("../parsers/parseHevyCsv.js").ParsedHevySetRow, exerciseId: string }[]} */
@@ -88,84 +87,128 @@ export async function importHevyCsvToDb({ csvText, fileName, userId }) {
 
         if (mappableSets.length === 0) continue; // if no sets can be mapped to an exercise ID, skip the workout
 
-        await tx.workout.create({ // tx - prisma client for the current transaction. .workout - the Workout table from our schema / model. .create() creates a new row in the table.
-          data: { // INSERT INTO "Workout" (userId, startedAt, notes, csvImportId) VALUES (?, ?, ?, ?). (This data object is the values Prisma will use to perform the INSERT into the Workout table (and related inserts for sets).)
-            userId,
-            startedAt: group.startedAt,
-            notes: group.workoutTitle || null,
-            csvImportId: csvImport.id,
-            sets: {
-              create: mappableSets.map(({ row, exerciseId }) => toWorkoutSetCreate(row, exerciseId)), // mappableSets is an array like: [{ row: /* parsed set row */, exerciseId: "abc" }, { row: /* parsed set row */, exerciseId: "def" },] .map() loops through each element of the array and calls toWorkoutSetCreate() for each element. This converts each element into the exact object Prisma needs to create a WorkoutSet.
-            },
-          },
-        });
+    preparedWorkouts.push({
+      startedAt: group.startedAt,
+      notes: group.workoutTitle || null,
+      sets: mappableSets.map(({ row, exerciseId }) =>
+        toWorkoutSetCreate(row, exerciseId),
+      ),
+    });
+  }
 
-        workoutsCreated += 1;
-        setsImported += mappableSets.length;
-      }
+  const unknownExercises = toUnknownExerciseList(unknownByTitle);
+  let csvImportId = null;
 
-      const unknownExercises = toUnknownExerciseList(unknownByTitle); // unknownExercises is an array of objects like: [{ exerciseTitle: "exerciseTitle1", skippedSets: 1, sampleSourceRows: [1] }, { exerciseTitle: "exerciseTitle2", skippedSets: 2, sampleSourceRows: [2] },]
-      // Build a summary object with of everything that wasn't perfect about the import
-      const errorDetails = {
-        parseErrors: parsed.errors,
-        unknownExercises,
-        skippedSets,
-      };
+  try {
+    if (importMode === "replace") {
+      // Sets cascade from workouts. Measurements / exercises are left alone.
+      await prisma.workout.deleteMany({ where: { userId } });
+      await prisma.csvImport.deleteMany({ where: { userId } });
+    }
 
-      await tx.csvImport.update({
-        where: { id: csvImport.id },
-        data: {
-          status: "COMPLETED",
-          errorDetails,
+    const csvImport = await prisma.csvImport.create({
+      data: {
+        userId,
+        fileName,
+        status: "PROCESSING",
+      },
+    });
+    csvImportId = csvImport.id;
+
+    let workoutsCreated = 0;
+    let setsImported = 0;
+
+    for (let i = 0; i < preparedWorkouts.length; i += WORKOUT_BATCH_SIZE) {
+      const batch = preparedWorkouts.slice(i, i + WORKOUT_BATCH_SIZE);
+
+      await prisma.$transaction(
+        async (tx) => {
+          for (const workout of batch) {
+            await tx.workout.create({
+              data: {
+                userId,
+                startedAt: workout.startedAt,
+                notes: workout.notes,
+                csvImportId: csvImport.id,
+                sets: {
+                  create: workout.sets,
+                },
+              },
+            });
+            workoutsCreated += 1;
+            setsImported += workout.sets.length;
+          }
         },
-      });
+        {
+          maxWait: 30_000,
+          timeout: BATCH_TRANSACTION_TIMEOUT_MS,
+        },
+      );
+    }
 
-      // summary on line 55 is set to this return value
-      return {
-        importId: csvImport.id,
-        workoutsCreated,
-        setsImported,
-        unknownExercises,
-      };
-    }, {
-      maxWait: 30_000,
-      timeout: IMPORT_TRANSACTION_TIMEOUT_MS,
+    await prisma.csvImport.update({
+      where: { id: csvImport.id },
+      data: {
+        status: "COMPLETED",
+        errorDetails: {
+          parseErrors: parsed.errors,
+          unknownExercises,
+          skippedSets,
+        },
+      },
     });
 
-    // this is the return value of the importHevyCsvToDb function
     return {
       ok: true,
-      importId: summary.importId,
+      importId: csvImport.id,
       fileName,
+      mode: importMode,
       stats: {
-        ...parsed.stats, // parsed.stats is an object like: { totalRows: 100, totalWorkouts: 10, totalSets: 100, totalUnknownExercises: 10, } ...spread operator copies all properties from parsed.stats into the new object.
-        workoutsCreated: summary.workoutsCreated,
-        setsImported: summary.setsImported,
+        ...parsed.stats,
+        workoutsCreated,
+        setsImported,
         setsSkipped: skippedSets,
       },
       parseErrors: parsed.errors,
-      unknownExercises: summary.unknownExercises,
+      unknownExercises,
     };
   } catch (err) { // If something throws or a rejected Promise isn’t caught inside the try, execution jumps to catch. avaScript passes that thrown value into err (you can name it anything: catch (e), catch (error)).
     const message = err instanceof Error ? err.message : String(err);
 
-    await prisma.csvImport.create({
-      data: {
-        userId,
-        fileName,
-        status: "FAILED",
-        errorDetails: {
-          message,
-          parseErrors: parsed.errors,
-        },
-      },
-    });
+    try {
+      if (csvImportId) {
+        await prisma.csvImport.update({
+          where: { id: csvImportId },
+          data: {
+            status: "FAILED",
+            errorDetails: {
+              message,
+              parseErrors: parsed.errors,
+            },
+          },
+        });
+      } else {
+        await prisma.csvImport.create({
+          data: {
+            userId,
+            fileName,
+            status: "FAILED",
+            errorDetails: {
+              message,
+              parseErrors: parsed.errors,
+            },
+          },
+        });
+      }
+    } catch {
+      // Ignore secondary failure while recording FAILED status.
+    }
 
-    // this is the return value of the importHevyCsvToDb function if the import failed while saving to the database
     return {
       ok: false,
       status: 500,
       error: "Import failed while saving to the database",
+      detail: message,
       fileName,
       parseErrors: parsed.errors,
     };

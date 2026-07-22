@@ -1,5 +1,6 @@
 import { NavLink, Route, Routes } from 'react-router-dom'
 import { Dashboard } from './pages/Dashboard'
+import { DataPage } from './pages/DataPage'
 import { SetsByMusclePage } from './pages/SetsByMusclePage'
 
 function App() {
@@ -15,14 +16,18 @@ function App() {
           <NavLink to="/" end className="nav__link">
             Dashboard
           </NavLink>
+          <NavLink to="/data" className="nav__link">
+            Log data
+          </NavLink>
           <NavLink to="/sets-by-muscle" className="nav__link">
-            Logs breakdown by muscle
+            Sets by muscle
           </NavLink>
         </nav>
       </header>
 
-      <Routes>
+      <Routes>j
         <Route path="/" element={<Dashboard />} />
+        <Route path="/data" element={<DataPage />} />
         <Route path="/sets-by-muscle" element={<SetsByMusclePage />} />
       </Routes>
     </div>
