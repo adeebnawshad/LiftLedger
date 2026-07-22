@@ -190,7 +190,7 @@ model BodyMeasurementEntry {
   userId     String
   measuredAt DateTime @default(now())
   site       MeasurementSite
-  /// kg when site is BODY_WEIGHT; cm for circumferences (app + UI document the rule).
+  /// lbs when site is BODY_WEIGHT; inches for circumferences (app + UI document the rule).
   value      Decimal  @db.Decimal(8, 2)
   notes      String?
 

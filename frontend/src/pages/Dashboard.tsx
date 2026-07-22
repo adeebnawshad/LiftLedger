@@ -1,7 +1,9 @@
 import { CsvUpload } from '../components/CsvUpload'
 import { MeasurementChart } from '../components/MeasurementChart'
-import { PeriodInsightsPanel } from '../components/PeriodInsightsPanel'
+import { MeasurementScatter } from '../components/MeasurementScatter'
+import { MeasurementUpload } from '../components/MeasurementUpload'
 import { StrengthTrendChart } from '../components/StrengthTrendChart'
+import { WaistMeasurementScatter } from '../components/WaistMeasurementScatter'
 import { WeeklyVolumeChart } from '../components/WeeklyVolumeChart'
 
 const PERIOD_A = { start: '2026-01-17', end: '2026-04-04', label: 'Period A' }
@@ -11,8 +13,7 @@ export function Dashboard() {
   return (
     <div className="dashboard">
       <CsvUpload />
-
-      <PeriodInsightsPanel periodA={PERIOD_A} periodB={PERIOD_B} />
+      <MeasurementUpload />
 
       <div className="section-grid">
         <WeeklyVolumeChart
@@ -45,15 +46,19 @@ export function Dashboard() {
       <div className="section-grid">
         <MeasurementChart
           title="Size — Body weight"
-          defaultStart="2026-02-01"
-          defaultEnd="2026-04-30"
           defaultSite="BODY_WEIGHT"
         />
         <MeasurementChart
           title="Size — Left arm"
-          defaultStart="2026-02-01"
-          defaultEnd="2026-04-30"
           defaultSite="LEFT_ARM"
+        />
+        <MeasurementScatter
+          title="Bodyweight vs. measurement"
+          defaultSite="LEFT_ARM"
+        />
+        <WaistMeasurementScatter
+          title="Waist vs. measurement"
+          defaultSite="CHEST"
         />
       </div>
     </div>
