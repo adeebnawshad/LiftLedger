@@ -5,8 +5,7 @@ import {
   getStrengthTrends,
   getWeeklyVolume,
 } from "../services/analyticsService.js";
-import { getPeriodInsights } from "../services/insightsService.js";
-import { getMeasurementTrends, getMeasurementScatter } from "../services/measurementService.js";
+import { getMeasurementTrends, getMeasurementScatter, getWaistMeasurementScatter } from "../services/measurementService.js";
 
 const router = Router();
 
@@ -127,48 +126,6 @@ router.get("/strength-trends", async (req, res, next) => {
 });
 
 /**
- * GET /api/analytics/period-insights?startA&endA&startB&endB&exerciseId?
- * Rule-based comparison of volume and strength across two periods.
- */
-router.get("/period-insights", async (req, res, next) => {
-  try {
-    const { startA, endA, startB, endB, exerciseId } = req.query;
-
-    const userId = process.env.DEFAULT_USER_ID;
-    if (!userId) {
-      return res.status(500).json({
-        ok: false,
-        error: "DEFAULT_USER_ID is not configured. Run npm run db:seed and set it in .env.",
-      });
-    }
-
-    if (!startA || !endA || !startB || !endB) {
-      return res.status(400).json({
-        ok: false,
-        error: "Provide startA, endA, startB, and endB (YYYY-MM-DD).",
-      });
-    }
-
-    const result = await getPeriodInsights({
-      userId,
-      startA: String(startA),
-      endA: String(endA),
-      startB: String(startB),
-      endB: String(endB),
-      exerciseId: exerciseId ? String(exerciseId) : undefined,
-    });
-
-    if (!result.ok) {
-      return res.status(result.status ?? 400).json(result);
-    }
-
-    return res.status(200).json(result);
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
  * GET /api/analytics/measurements?site=BODY_WEIGHT
  * All dated body measurement points for a site (lbs / inches).
  */
@@ -225,6 +182,45 @@ router.get("/measurements-scatter", async (req, res, next) => {
     }
 
     const result = await getMeasurementScatter({
+      userId,
+      site: String(site),
+    });
+    if (!result.ok) {
+      return res.status(result.status ?? 400).json(result);
+    }
+
+    return res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/analytics/measurements-waist-scatter?site=LEFT_ARM
+ * Same-day waist vs other girth pairs. Rows: { measuredAt, waist, measurement }.
+ * measuredAt is for tooltip only (not chart axes).
+ */
+router.get("/measurements-waist-scatter", async (req, res, next) => {
+  try {
+    const { site } = req.query;
+
+    const userId = process.env.DEFAULT_USER_ID;
+    if (!userId) {
+      return res.status(500).json({
+        ok: false,
+        error: "DEFAULT_USER_ID is not configured. Run npm run db:seed and set it in .env.",
+      });
+    }
+
+    if (!site) {
+      return res.status(400).json({
+        ok: false,
+        error:
+          "Provide a girth site other than WAIST (e.g. LEFT_ARM, CHEST) — not BODY_WEIGHT.",
+      });
+    }
+
+    const result = await getWaistMeasurementScatter({
       userId,
       site: String(site),
     });

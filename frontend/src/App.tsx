@@ -9,8 +9,7 @@ function App() {
         <span className="hero__badge">Training analytics</span>
         <h1>LiftLedger</h1>
         <p>
-          Compare volume, strength, and size across periods — with rule-based
-          insights on progression, plateaus, and volume–strength mismatches.
+          Compare volume, strength, and size across training periods.
         </p>
         <nav className="nav" aria-label="Main">
           <NavLink to="/" end className="nav__link">

@@ -16,7 +16,13 @@ router.post("/", async (req, res, next) => {
         error: "DEFAULT_USER_ID is not configured. Run npm run db:seed and set it in .env.",
       });
     }
-    const result = await createMeasurementEntry({ userId, site, value, measuredAt });
+    const result = await createMeasurementEntry({
+      userId,
+      site,
+      value,
+      measuredAt,
+      notes,
+    });
     if (result.ok) {
       return res.status(201).json(result.entry);
     } else {

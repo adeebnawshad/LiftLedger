@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import { prisma } from "./prisma.js";
 import importRoutes from "./routes/importRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
+import measurementRoutes from "./routes/measurementRoutes.js";
 
 dotenv.config();
 
