@@ -12,7 +12,7 @@ LiftLedger turns Hevy CSV workout exports into a personal training analytics das
 
 ## Inspiration
 
-How much training volume you should be doing for optimal muscle growth and strength gain is a highly debated topic in the fitness industry. Analyzing training volume and progress usually means scrscolling Hevy history or guessing from memory. I wanted a clearer picture using my own training data: how volume is distributed across muscles week to week, how much strength is actually moving (e1RM), and how body measurements track alongside training — without rebuilding my logbook by hand.
+How much training volume you should be doing for optimal muscle growth and strength gain is a highly debated topic in the fitness industry. Analyzing training volume and progress usually means scrolling workout history or guessing from memory. I wanted a clearer picture using my own training data: how volume is distributed across muscles week to week, how much strength is actually moving (e1RM), and how body measurements track alongside training — without rebuilding my logbook by hand.
 
 LiftLedger is that layer on top of Hevy: keep logging in the gym app you already use, export when you want insights, and analyze the full history in one place.
 
