@@ -4,15 +4,11 @@
 
 LiftLedger turns Hevy CSV workout exports into a personal training analytics dashboard. Import set-level history into Postgres, map exercises to muscle groups, and explore weekly volume, estimated strength trends, and body measurements through interactive Recharts charts.
 
-<!-- Drop screenshots into docs/screenshots/ then uncomment:
-![Dashboard](docs/screenshots/dashboard.png)
-![Volume chart](docs/screenshots/volume.png)
-![Log data](docs/screenshots/log-data.png)
--->
+![Dashboard — volume and strength](docs/screenshots/dashboard.png)
 
 ## Inspiration
 
-How much training volume you should be doing for optimal muscle growth and strength gain is a highly debated topic in the fitness industry. Analyzing training volume and progress usually means scrolling workout history or guessing from memory. I wanted a clearer picture using my own training data: how volume is distributed across muscles week to week, how much strength is actually moving (e1RM), and how body measurements track alongside training — without rebuilding my logbook by hand.
+How much training volume you should be doing for optimal muscle growth and strength gain is a highly debated topic in the fitness industry. Analyzing training volume and progress usually means scrolling Hevy history or guessing from memory. I wanted a clearer picture using my own training data: how volume is distributed across muscles week to week, how much strength is actually moving (e1RM), and how body measurements track alongside training — without rebuilding my logbook by hand.
 
 LiftLedger is that layer on top of Hevy: keep logging in the gym app you already use, export when you want insights, and analyze the full history in one place.
 
@@ -49,7 +45,13 @@ Exercise rows stay close to Hevy naming (e.g. `Bench Press (Barbell)` vs `Bench 
 - **Exercise library from your export** — `db:seed:exercises` builds exercises (and lookup rows) from unique titles in a Hevy CSV, then classifies muscle / type / strength mode
 - **Weekly volume** — SQL aggregation by week and muscle; stacked muscle bars with click-to-isolate drill-down into compound vs isolation sets
 - **Calendar-span averages** — empty weeks don't inflate “sets per week”
+
+![Volume drill-down — compound vs isolation](docs/screenshots/volume-drilldown.png)
+
 - **Strength trends** — weekly max estimated 1RM (Epley, lbs) or max reps, with % change vs the first week in range
+
+![Strength trend — e1RM](docs/screenshots/strength.png)
+
 - **Sets by muscle** — raw session-level set log outside weekly buckets
 - **Body composition** — multi-site logging, all-time trend charts, same-day scatters (bodyweight vs circumference, waist vs circumference)
 
@@ -140,6 +142,8 @@ Open [http://localhost:5173](http://localhost:5173). Vite proxies `/api` to the 
 1. In Hevy: export workouts as CSV  
 2. Open **Log data** in LiftLedger  
 3. Choose **Replace** (full refresh) or **Append**, then upload  
+
+![Log data — CSV import and measurements](docs/screenshots/log-data.png)
 
 Large files can take several minutes.
 
