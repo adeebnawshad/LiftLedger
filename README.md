@@ -53,6 +53,9 @@ Exercise rows stay close to Hevy naming (e.g. `Bench Press (Barbell)` vs `Bench 
 ![Strength trend — e1RM](docs/screenshots/strength.png)
 
 - **Sets by muscle** — raw session-level set log outside weekly buckets
+
+![Sets by muscle — raw set log](docs/screenshots/sets-by-muscle.png)
+
 - **Body composition** — multi-site logging, all-time trend charts, same-day scatters (bodyweight vs circumference, waist vs circumference)
 
 ### At a glance
