@@ -16,19 +16,24 @@ export function Dashboard() {
           defaultStart={PERIOD_A.start}
           defaultEnd={PERIOD_A.end}
         />
-        <WeeklyVolumeChart
-          title="Volume — Period B"
-          defaultStart={PERIOD_B.start}
-          defaultEnd={PERIOD_B.end}
-        />
-      </div>
-
-      <div className="section-grid">
         <StrengthTrendChart
           title="Strength — Period A"
           defaultStart={PERIOD_A.start}
           defaultEnd={PERIOD_A.end}
           defaultExerciseName="Bench Press (Barbell)"
+        />
+        <MeasurementChart defaultSite="BODY_WEIGHT" />
+        <MeasurementScatter
+          title="Bodyweight vs. measurement"
+          defaultSite="LEFT_ARM"
+        />
+      </div>
+
+      <div className="section-grid">
+        <WeeklyVolumeChart
+          title="Volume — Period B"
+          defaultStart={PERIOD_B.start}
+          defaultEnd={PERIOD_B.end}
         />
         <StrengthTrendChart
           title="Strength — Period B"
@@ -36,21 +41,7 @@ export function Dashboard() {
           defaultEnd={PERIOD_B.end}
           defaultExerciseName="Bench Press (Barbell)"
         />
-      </div>
-
-      <div className="section-grid">
-        <MeasurementChart
-          title="Size — Bodyweight"
-          defaultSite="BODY_WEIGHT"
-        />
-        <MeasurementChart
-          title="Size — Left arm"
-          defaultSite="LEFT_ARM"
-        />
-        <MeasurementScatter
-          title="Bodyweight vs. measurement"
-          defaultSite="LEFT_ARM"
-        />
+        <MeasurementChart defaultSite="LEFT_ARM" />
         <WaistMeasurementScatter
           title="Waist vs. measurement"
           defaultSite="CHEST"

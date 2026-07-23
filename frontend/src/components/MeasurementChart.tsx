@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import {
   CartesianGrid,
   Legend,
@@ -23,27 +23,25 @@ import {
 import type { MeasurementRow, MeasurementSite } from '../types/measurements'
 
 type Props = {
-  title: string
   defaultSite?: MeasurementSite
 }
 
 export function MeasurementChart({
-  title,
   defaultSite = 'BODY_WEIGHT',
 }: Props) {
+  const reactId = useId()
+  const slug = `size-${reactId.replace(/:/g, '')}`
   const [site, setSite] = useState<MeasurementSite>(defaultSite)
   const [rows, setRows] = useState<MeasurementRow[]>([])
   const [unit, setUnit] = useState('lbs')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const slug = title.replace(/\s+/g, '-').toLowerCase()
-
-  async function load() {
+  async function load(nextSite: MeasurementSite = site) {
     setLoading(true)
     setError(null)
     try {
-      const result = await fetchMeasurementTrends({ site })
+      const result = await fetchMeasurementTrends({ site: nextSite })
       setRows(result.rows)
       setUnit(result.unit)
     } catch (err) {
@@ -55,25 +53,30 @@ export function MeasurementChart({
   }
 
   useEffect(() => {
-    load()
+    void load()
   }, [])
 
+  function onSiteChange(nextSite: MeasurementSite) {
+    setSite(nextSite)
+    void load(nextSite)
+  }
+
   const siteLabel =
-    MEASUREMENT_SITES.find((s) => s.value === site)?.label ?? site // 
+    MEASUREMENT_SITES.find((s) => s.value === site)?.label ?? site
 
   return (
     <section className="card">
-      <h2 className="card__title">{title}</h2>
+      <h2 className="card__title">Size — {siteLabel}</h2>
       <p className="card__subtitle">All recorded measurements for this site</p>
 
       <div className="toolbar">
         <div className="field">
           <label htmlFor={`${slug}-site`}>Site</label>
-          <select // select is a form element that allows the user to select one option from a list of options
+          <select
             id={`${slug}-site`}
             className="select"
             value={site}
-            onChange={(e) => setSite(e.target.value as MeasurementSite)}
+            onChange={(e) => onSiteChange(e.target.value as MeasurementSite)}
           >
             {MEASUREMENT_SITES.map((s) => (
               <option key={s.value} value={s.value}>
@@ -82,7 +85,12 @@ export function MeasurementChart({
             ))}
           </select>
         </div>
-        <button type="button" className="btn" onClick={load} disabled={loading}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => void load()}
+          disabled={loading}
+        >
           {loading ? 'Loading…' : 'Load'}
         </button>
       </div>

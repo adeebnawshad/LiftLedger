@@ -11,15 +11,15 @@ export const CHART_COLORS = {
 export const MUSCLE_COLORS: Record<string, string> = {
   CHEST: '#5eb8ff',
   BACK: '#3dd6c3',
-  UPPER_TRAPS: '#38bdf8',
+  UPPER_TRAPS: '#7c3aed', // violet — was sky-blue like chest
   QUADS: '#e8c547',
   HAMSTRINGS: '#ff8a3d',
   GLUTES: '#f472b6',
   CALVES: '#a3e635',
   SHOULDERS: '#94a3b8',
   BICEPS: '#f87171',
-  TRICEPS: '#fb7185',
-  FOREARMS: '#a8b4a8',
+  TRICEPS: '#c026d3', // fuchsia — was pink like biceps
+  FOREARMS: '#a16207', // brown-gold — was muted green-grey like shoulders
   CORE: '#4ade80',
   OTHER: '#6b756f',
 }

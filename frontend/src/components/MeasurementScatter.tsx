@@ -75,11 +75,11 @@ export function MeasurementScatter({
 
   const slug = title.replace(/\s+/g, '-').toLowerCase()
 
-  async function load() {
+  async function load(nextSite: GirthSite = site) {
     setLoading(true)
     setError(null)
     try {
-      const result = await fetchMeasurementScatter({ site })
+      const result = await fetchMeasurementScatter({ site: nextSite })
       setRows(result.rows)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
@@ -90,8 +90,13 @@ export function MeasurementScatter({
   }
 
   useEffect(() => {
-    load()
+    void load()
   }, [])
+
+  function onSiteChange(nextSite: GirthSite) {
+    setSite(nextSite)
+    void load(nextSite)
+  }
 
   const siteLabel =
     GIRTH_MEASUREMENT_SITES.find((s) => s.value === site)?.label ?? site
@@ -110,7 +115,7 @@ export function MeasurementScatter({
             id={`${slug}-site`}
             className="select"
             value={site}
-            onChange={(e) => setSite(e.target.value as GirthSite)}
+            onChange={(e) => onSiteChange(e.target.value as GirthSite)}
           >
             {GIRTH_MEASUREMENT_SITES.map((s) => (
               <option key={s.value} value={s.value}>
@@ -119,7 +124,12 @@ export function MeasurementScatter({
             ))}
           </select>
         </div>
-        <button type="button" className="btn" onClick={load} disabled={loading}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => void load()}
+          disabled={loading}
+        >
           {loading ? 'Loading…' : 'Load'}
         </button>
       </div>
