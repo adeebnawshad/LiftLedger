@@ -1,36 +1,36 @@
 export const CHART_COLORS = {
-  volume: '#a855f7',
-  strength: '#3b82f6',
-  measurement: '#8b5cf6',
-  grid: '#2a3548',
-  axis: '#64748b',
-  tick: '#8b9bb4',
+  volume: '#ff6b2c',
+  strength: '#5eb8ff',
+  measurement: '#3dd6c3',
+  grid: '#2a332e',
+  axis: '#6b756f',
+  tick: '#9aa399',
 }
 
 /** Stable fills for stacked weekly-volume bars (muscle mode). */
 export const MUSCLE_COLORS: Record<string, string> = {
-  CHEST: '#3b82f6',
-  BACK: '#14b8a6',
-  UPPER_TRAPS: '#0ea5e9',
-  QUADS: '#eab308',
-  HAMSTRINGS: '#f97316',
-  GLUTES: '#ec4899',
-  CALVES: '#84cc16',
-  SHOULDERS: '#8b5cf6',
-  BICEPS: '#ef4444',
-  TRICEPS: '#f472b6',
-  FOREARMS: '#a78bfa',
-  CORE: '#22c55e',
-  OTHER: '#64748b',
+  CHEST: '#5eb8ff',
+  BACK: '#3dd6c3',
+  UPPER_TRAPS: '#38bdf8',
+  QUADS: '#e8c547',
+  HAMSTRINGS: '#ff8a3d',
+  GLUTES: '#f472b6',
+  CALVES: '#a3e635',
+  SHOULDERS: '#94a3b8',
+  BICEPS: '#f87171',
+  TRICEPS: '#fb7185',
+  FOREARMS: '#a8b4a8',
+  CORE: '#4ade80',
+  OTHER: '#6b756f',
 }
 
 /** Stacked compound vs isolation (single-muscle mode). */
 export const TYPE_COLORS = {
-  COMPOUND: '#3b82f6',
-  ISOLATION: '#f59e0b',
+  COMPOUND: '#5eb8ff',
+  ISOLATION: '#ff6b2c',
 } as const
 
-const FALLBACK_MUSCLE_COLOR = '#64748b' // fallback color for when a muscle group is not found in the MUSCLE_COLORS object
+const FALLBACK_MUSCLE_COLOR = '#6b756f'
 
 export function muscleColor(muscleGroup: string): string {
   return MUSCLE_COLORS[muscleGroup] ?? FALLBACK_MUSCLE_COLOR
@@ -66,11 +66,11 @@ export const gridStyle = {
 
 export const tooltipStyle = {
   contentStyle: {
-    background: '#1a2130',
-    border: '1px solid #2a3548',
+    background: '#171c19',
+    border: '1px solid #2a332e',
     borderRadius: '8px',
     fontSize: '13px',
-    color: '#e8edf5',
+    color: '#f2f0ea',
   },
-  labelStyle: { color: '#8b9bb4' },
+  labelStyle: { color: '#9aa399' },
 }

@@ -75,7 +75,7 @@ export async function fetchWaistMeasurementScatter(params: {
 }
 
 export const MEASUREMENT_SITES: { value: MeasurementSite; label: string }[] = [
-  { value: 'BODY_WEIGHT', label: 'Body weight' },
+  { value: 'BODY_WEIGHT', label: 'Bodyweight' },
   { value: 'NECK', label: 'Neck' },
   { value: 'LEFT_ARM', label: 'Left arm' },
   { value: 'RIGHT_ARM', label: 'Right arm' },

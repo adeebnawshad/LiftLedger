@@ -263,7 +263,7 @@ export function WeeklyVolumeChart({ title, defaultStart, defaultEnd }: Props) {
                     dataKey="COMPOUND"
                     stackId="volume"
                     fill={muscleColor(selectedMuscle)}
-                    stroke="#0c0f14"
+                    stroke="#0e1110"
                     strokeWidth={2}
                     name={formatExerciseTypeLabel('COMPOUND')}
                   />
@@ -271,7 +271,7 @@ export function WeeklyVolumeChart({ title, defaultStart, defaultEnd }: Props) {
                     dataKey="ISOLATION"
                     stackId="volume"
                     fill={muscleColor(selectedMuscle)}
-                    stroke="#0c0f14"
+                    stroke="#0e1110"
                     strokeWidth={2}
                     name={formatExerciseTypeLabel('ISOLATION')}
                   />

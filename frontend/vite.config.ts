@@ -16,6 +16,9 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true, // Sets the proxied request's Host header to match the target (localhost:3000). . Helps with servers that care about host/origin. For local dev it’s mostly harmless insurance.
+        // Full Hevy exports can take several minutes; don't abort before Express finishes.
+        timeout: 0,
+        proxyTimeout: 0,
       },
       '/health': {
         target: 'http://localhost:3000',

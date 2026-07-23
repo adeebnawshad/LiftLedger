@@ -1,7 +1,5 @@
-import { CsvUpload } from '../components/CsvUpload'
 import { MeasurementChart } from '../components/MeasurementChart'
 import { MeasurementScatter } from '../components/MeasurementScatter'
-import { MeasurementUpload } from '../components/MeasurementUpload'
 import { StrengthTrendChart } from '../components/StrengthTrendChart'
 import { WaistMeasurementScatter } from '../components/WaistMeasurementScatter'
 import { WeeklyVolumeChart } from '../components/WeeklyVolumeChart'
@@ -12,9 +10,6 @@ const PERIOD_B = { start: '2026-01-17', end: '2026-04-04', label: 'Period B' }
 export function Dashboard() {
   return (
     <div className="dashboard">
-      <CsvUpload />
-      <MeasurementUpload />
-
       <div className="section-grid">
         <WeeklyVolumeChart
           title="Volume — Period A"
@@ -45,7 +40,7 @@ export function Dashboard() {
 
       <div className="section-grid">
         <MeasurementChart
-          title="Size — Body weight"
+          title="Size — Bodyweight"
           defaultSite="BODY_WEIGHT"
         />
         <MeasurementChart

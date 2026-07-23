@@ -33,6 +33,11 @@ const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
+// Large Hevy CSVs can take several minutes when inserting in batches.
+server.requestTimeout = 0;
+server.headersTimeout = 0;
+server.timeout = 0;
+
 async function shutdown() {
   await prisma.$disconnect();
   server.close(() => process.exit(0));
