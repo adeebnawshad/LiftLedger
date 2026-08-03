@@ -1,0 +1,88 @@
+# LiftLedger — file map
+
+Honest ledger from Phase 2 probes (2026-07-26).  
+Statuses: `known` = explained in own words during probes · `parked` = exists, not yet explained cold · `generated` = machine-made, never edit by hand.
+
+Grain: folders stay one line until we open them for a lesson.
+
+## Root
+
+| Path | Status | Why it exists |
+| --- | --- | --- |
+| `package.json` | parked | Root Node scripts (API, Prisma, seeds) → [[node-express]] — due: ground-solid / next-lesson |
+| `package-lock.json` | generated | Exact dependency versions; rebuild via `npm install` |
+| `.env` | parked | Local secrets: DB URL + `DEFAULT_USER_ID` → [[env-config]] — probe touched the idea |
+| `.env.example` | parked | Template for required env vars without secrets → [[env-config]] |
+| `.gitignore` | parked | Keeps secrets/build junk out of git |
+| `README.md` | parked | How to run + screenshots for portfolio |
+| `prisma.config.ts` | parked | Prisma tooling config → [[prisma-orm]] |
+| `skills-lock.json` | parked | Agent skill lockfile (not app runtime) |
+| `.agents/` | parked | Cursor/agent skills — not the product |
+| `.claude/` | parked | Claude skill copies — not the product |
+| `learning/` | known | Adopt curriculum artifacts (you + coach) |
+| `node_modules/` | generated | Installed packages; never edit; rebuild with `npm install` |
+| `generated/` | generated | Tooling output; rebuildable |
+
+## Backend (`backend/`)
+
+| Path | Status | Why it exists |
+| --- | --- | --- |
+| `backend/server.js` | parked | Starts Express, mounts routes, long timeouts for import → [[node-express]] |
+| `backend/prisma.js` | parked | Shared Prisma client for DB access → [[prisma-orm]] |
+| `backend/routes/` | parked | HTTP endpoints (import, analytics, measurements) → [[rest-api]] |
+| `backend/routes/importRoutes.js` | known | POST import: Multer + call import service → [[csv-import-pipeline]] [[multipart-upload]] |
+| `backend/middleware/uploadCsv.js` | parked | Multer rules (CSV, size) → [[multipart-upload]] — reclaim with import |
+| `backend/parsers/parseHevyCsv.js` | known | CSV text → normalized set rows; header/row validation → [[csv-import-pipeline]] |
+| `backend/parsers/` (other) | parked | Date/set-kind helpers for the parser |
+| `backend/services/importHevyCsv.js` | known | Group workouts, alias map, replace/append, **batch insert** → [[csv-import-pipeline]] [[batched-writes]] |
+| `backend/services/analyticsService.js` | known | SQL for volume / strength / sets-by-muscle → [[sql-aggregation]] [[e1rm]] |
+| `backend/services/measurementService.js` | parked | Measurement create + trend/scatter queries → [[body-measurements]] |
+| `backend/routes/analyticsRoutes.js` | parked | Wires analytics URLs to the service → [[rest-api]] |
+| `backend/routes/measurementRoutes.js` | parked | POST measurements → [[rest-api]] |
+| `backend/fixtures/` | parked | Sample `workouts.csv` for seeding |
+| `backend/scripts/` | parked | One-off test/debug scripts for CSV |
+
+## Frontend (`frontend/`)
+
+| Path | Status | Why it exists |
+| --- | --- | --- |
+| `frontend/package.json` | parked | Vite/React app scripts → [[react-vite]] |
+| `frontend/vite.config.ts` | parked | Dev server + `/api` proxy → [[vite-proxy]] |
+| `frontend/src/main.tsx` | parked | React entry |
+| `frontend/src/App.tsx` | parked | Routes + shell/nav → [[react-router]] |
+| `frontend/src/index.css` | parked | Theme/layout (unreviewed polish) → [[css-theme]] — reclaim later |
+| `frontend/src/pages/` | parked | Dashboard, Log data, Sets by muscle pages |
+| `frontend/src/pages/SetsByMusclePage.tsx` | parked | Hosts sets-by-muscle tables — **feature work lands near here** |
+| `frontend/src/components/CsvUpload.tsx` | known | Upload UI → POST import → [[csv-import-pipeline]] |
+| `frontend/src/components/MeasurementChart.tsx` | known | Size chart; site change calls `load(nextSite)` → [[react-state-fetch]] |
+| `frontend/src/components/MeasurementScatter.tsx` | parked | BW vs girth; same auto-load pattern → [[react-state-fetch]] |
+| `frontend/src/components/WaistMeasurementScatter.tsx` | parked | Waist vs girth scatter |
+| `frontend/src/components/WeeklyVolumeChart.tsx` | parked | Stacked volume + muscle isolate → [[weekly-volume]] [[calendar-span-avg]] |
+| `frontend/src/components/StrengthTrendChart.tsx` | parked | e1RM line + % from first week → [[e1rm]] |
+| `frontend/src/components/SetsByMuscleTable.tsx` | parked | Raw set log UI + exercise filter chips (uncommitted) → [[sets-by-muscle]] — reclaim §4 |
+| `frontend/src/components/MeasurementUpload.tsx` | parked | Manual measurement form |
+| `frontend/src/lib/` | parked | Fetch helpers, chart theme, weekly-volume math |
+| `frontend/src/lib/weeklyVolume.ts` | known | Calendar-span averages (explained in probe) → [[calendar-span-avg]] |
+| `frontend/src/lib/strengthTrends.ts` | parked | % from first week helper → [[e1rm]] |
+| `frontend/src/types/` | parked | TypeScript shapes for API data |
+| `frontend/node_modules/` | generated | Frontend packages |
+| `frontend/public/` | parked | Favicon / static assets |
+| `frontend/dist/` | generated | Production build output (if present) |
+
+## Database (`prisma/`)
+
+| Path | Status | Why it exists |
+| --- | --- | --- |
+| `prisma/schema.prisma` | parked | Tables/enums: workouts, sets, exercises, measurements → [[normalized-schema]] [[prisma-orm]] |
+| `prisma/migrations/` | parked | Versioned DB changes |
+| `prisma/seed.js` | parked | Default user + triggers exercise seed |
+| `prisma/seedExercisesFromCsv.js` | parked | Build exercise library from Hevy titles → [[exercise-classification]] |
+| `prisma/lib/classifyExercise.js` | parked | Rules: muscle / compound / strength mode → [[exercise-classification]] |
+| `prisma/lib/` (other) | parked | Alias normalize, CSV title merges |
+| `prisma/data/exercises.js` | parked | Old hand-curated seed (largely superseded by CSV seed) |
+
+## Docs
+
+| Path | Status | Why it exists |
+| --- | --- | --- |
+| `docs/screenshots/` | parked | README images |
