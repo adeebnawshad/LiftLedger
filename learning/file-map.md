@@ -9,10 +9,10 @@ Grain: folders stay one line until we open them for a lesson.
 
 | Path | Status | Why it exists |
 | --- | --- | --- |
-| `package.json` | parked | Root Node scripts (API, Prisma, seeds) → [[node-express]] — due: ground-solid / next-lesson |
+| `package.json` | known | Root scripts + deps; `npm run dev` → nodemon → Express API → [[node-express]] |
 | `package-lock.json` | generated | Exact dependency versions; rebuild via `npm install` |
-| `.env` | parked | Local secrets: DB URL + `DEFAULT_USER_ID` → [[env-config]] — probe touched the idea |
-| `.env.example` | parked | Template for required env vars without secrets → [[env-config]] |
+| `.env` | known | Local secrets loaded by dotenv into `process.env` (not committed) → [[env-config]] |
+| `.env.example` | known | Safe template in git: `PORT`, `DATABASE_URL`, `DEFAULT_USER_ID` → [[env-config]] |
 | `.gitignore` | parked | Keeps secrets/build junk out of git |
 | `README.md` | parked | How to run + screenshots for portfolio |
 | `prisma.config.ts` | parked | Prisma tooling config → [[prisma-orm]] |
@@ -20,6 +20,7 @@ Grain: folders stay one line until we open them for a lesson.
 | `.agents/` | parked | Cursor/agent skills — not the product |
 | `.claude/` | parked | Claude skill copies — not the product |
 | `learning/` | known | Adopt curriculum artifacts (you + coach) |
+| `learning/interview-sprint.md` | known | Temporary interview priority checklist (does not replace plan.md) |
 | `node_modules/` | generated | Installed packages; never edit; rebuild with `npm install` |
 | `generated/` | generated | Tooling output; rebuildable |
 
@@ -27,12 +28,12 @@ Grain: folders stay one line until we open them for a lesson.
 
 | Path | Status | Why it exists |
 | --- | --- | --- |
-| `backend/server.js` | parked | Starts Express, mounts routes, long timeouts for import → [[node-express]] |
+| `backend/server.js` | known | Express entry: listens on PORT, `/health` returns OK; routes still deeper in §2–3 → [[node-express]] [[rest-api]] |
 | `backend/prisma.js` | parked | Shared Prisma client for DB access → [[prisma-orm]] |
 | `backend/routes/` | parked | HTTP endpoints (import, analytics, measurements) → [[rest-api]] |
-| `backend/routes/importRoutes.js` | known | POST import: Multer + call import service → [[csv-import-pipeline]] [[multipart-upload]] |
-| `backend/middleware/uploadCsv.js` | parked | Multer rules (CSV, size) → [[multipart-upload]] — reclaim with import |
-| `backend/parsers/parseHevyCsv.js` | known | CSV text → normalized set rows; header/row validation → [[csv-import-pipeline]] |
+| `backend/routes/importRoutes.js` | known | POST import: Multer → buffer→text → userId/mode → import service; fail statuses if `!result.ok` → [[csv-import-pipeline]] [[rest-api]] |
+| `backend/middleware/uploadCsv.js` | known | Multer: RAM buffer, 10 MB cap, CSV/MIME filter → [[multipart-upload]] |
+| `backend/parsers/parseHevyCsv.js` | known | Pure parse: validate headers, skip bad rows, CSV → normalized set objects + orderIndex → [[csv-import-pipeline]] |
 | `backend/parsers/` (other) | parked | Date/set-kind helpers for the parser |
 | `backend/services/importHevyCsv.js` | known | Group workouts, alias map, replace/append, **batch insert** → [[csv-import-pipeline]] [[batched-writes]] |
 | `backend/services/analyticsService.js` | known | SQL for volume / strength / sets-by-muscle → [[sql-aggregation]] [[e1rm]] |
@@ -46,8 +47,8 @@ Grain: folders stay one line until we open them for a lesson.
 
 | Path | Status | Why it exists |
 | --- | --- | --- |
-| `frontend/package.json` | parked | Vite/React app scripts → [[react-vite]] |
-| `frontend/vite.config.ts` | parked | Dev server + `/api` proxy → [[vite-proxy]] |
+| `frontend/package.json` | known | Frontend scripts; `npm run dev` → Vite → [[react-vite]] |
+| `frontend/vite.config.ts` | known | Dev server; `/api` (and `/health`) proxy to Express :3000 → [[vite-proxy]] |
 | `frontend/src/main.tsx` | parked | React entry |
 | `frontend/src/App.tsx` | parked | Routes + shell/nav → [[react-router]] |
 | `frontend/src/index.css` | parked | Theme/layout (unreviewed polish) → [[css-theme]] — reclaim later |
@@ -73,7 +74,7 @@ Grain: folders stay one line until we open them for a lesson.
 
 | Path | Status | Why it exists |
 | --- | --- | --- |
-| `prisma/schema.prisma` | parked | Tables/enums: workouts, sets, exercises, measurements → [[normalized-schema]] [[prisma-orm]] |
+| `prisma/schema.prisma` | known | Tables/enums + FKs: User→Workout→WorkoutSet→Exercise (+ Alias, CsvImport, Measurement) → [[normalized-schema]] [[prisma-orm]] |
 | `prisma/migrations/` | parked | Versioned DB changes |
 | `prisma/seed.js` | parked | Default user + triggers exercise seed |
 | `prisma/seedExercisesFromCsv.js` | parked | Build exercise library from Hevy titles → [[exercise-classification]] |

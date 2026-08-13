@@ -34,7 +34,7 @@ _(none — no half-built feature branches to freeze)_
 - Fix wrong muscle mappings for uncommon exercises (rules or manual overrides)
 - Reclaim unreviwed: CSV batching import path, measurement/scatter auto-reload on dropdown change, CSS polish
 - Interview fluency: CSV parser validation/data flow from memory; React live-debug practice
-- Possible later (not MVP for adopt): auth/multi-user, async import queue, period A/B insights UI
+- Possible later (not MVP for adopt): auth/multi-user, async import queue, period A/B insights UI, **AWS deploy (§9 — EC2 + S3/CloudFront; resume-oriented)**
 
 ## Triage decision
 
